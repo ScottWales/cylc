@@ -1611,6 +1611,7 @@ class config( CylcConfigObj ):
         taskd.enviro_scripting = taskconfig['environment scripting'] 
 
         taskd.ssh_messaging = str(taskconfig['remote']['ssh messaging'])
+        taskd.remotehost_tunnel = str(taskconfig['remote']['tunnel through remote host'])
 
         taskd.job_submission_shell = taskconfig['job submission']['shell']
 

@@ -116,6 +116,7 @@ class taskdef(object):
         self.initial_scripting = None
         self.enviro_scripting = None
         self.ssh_messaging = False
+        self.ssh_remotehost_tunnel = False
 
         self.environment = OrderedDict()  # var = value
         self.directives  = OrderedDict()  # var = value
@@ -313,6 +314,7 @@ class taskdef(object):
             sself.initial_scripting = self.initial_scripting
             sself.enviro_scripting = self.enviro_scripting
             sself.ssh_messaging = self.ssh_messaging
+            sself.remotehost_tunnel = self.remotehost_tunnel
 
             sself.command = self.command
 

@@ -341,6 +341,8 @@ class task( Pyro.core.ObjBase ):
                 'post-command scripting' : self.postcommand,
                 'namespace hierarchy' : self.namespace_hierarchy,
                 'use ssh messaging' : self.ssh_messaging,
+                'tunnel through remote host' : self.remotehost_tunnel,
+                'remote host' : self.__class__.remote_host,
                 'use manual completion' : self.manual_messaging,
                 'try number' : self.try_number,
                 'is cold-start' : self.is_coldstart,

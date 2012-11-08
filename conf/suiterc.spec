@@ -149,6 +149,7 @@ description = string( default="No description provided" )
             share directory = string( default=None )
             work directory = string( default=None )
             ssh messaging = boolean( default=False )
+            tunnel through remote host = boolean( default=False )
         [[[event hooks]]]
             submitted handler = string( default=None )
             started handler = string( default=None )
