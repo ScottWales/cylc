@@ -32,6 +32,7 @@ class remrun( object ):
     def __init__( self ):
         self.owner = None
         self.host = None
+        self.tunnel_host = None
 
         if '-v' in sys.argv or '--verbose' in sys.argv:
             self.verbose = True
@@ -47,10 +48,14 @@ class remrun( object ):
                 self.owner = arg.replace("--owner=", "")
             elif arg.startswith("--host="):
                 self.host = arg.replace("--host=", "")
+            elif arg.startswith("--tunnel-host="):
+                self.tunnel_host = arg.replace("--tunnel-host=", "")
             else:
                 self.args.append(arg)
 
-        if is_remote_user( self.owner ) or is_remote_host(self.host):
+        if is_remote_host(self.tunnel_host):
+            self.is_remote = True
+        elif is_remote_user( self.owner ) or is_remote_host(self.host):
             self.is_remote = True
         else:
             self.is_remote = False
@@ -77,7 +82,11 @@ class remrun( object ):
             user_at_host += 'localhost'
 
         # ssh command and options (X forwarding):
-        command = ["ssh", "-oBatchMode=yes", "-Y" ]
+        command = []
+        if self.tunnel_host:
+            command += ["ssh", "-oBatchMode=yes", "-Y", self.tunnel_host]
+
+        command += ["ssh", "-oBatchMode=yes", "-Y"]
         # target URL and explicit bash shell
         command += [ user_at_host, "/usr/bin/env", "bash"]
 

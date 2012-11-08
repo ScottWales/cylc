@@ -103,6 +103,13 @@ class message(object):
                 self.ssh_messaging = True
         except:
             pass
+
+        self.ssh_tunnel = False
+        try:
+            self.tunnel_host = os.environ['CYLC_SSH_TUNNEL_HOST']
+            self.ssh_tunnel = True
+        except:
+            pass
             
         try:
             # value may be string 'None'
@@ -159,6 +166,10 @@ class message(object):
             # to identify the target user and host names:
             sys.argv.append( '--owner=' + self.owner )
             sys.argv.append( '--host=' + self.host )
+
+            if self.ssh_tunnel:
+                sys.argv.append( '--tunnel-host=' + self.tunnel_host )
+
             if self.verbose:
                 sys.argv.append( '-v' )
             # Some variables from the task execution environment are
