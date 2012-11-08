@@ -1338,6 +1338,24 @@ tasks that are local as far as cylc is concerned, but which end up
 running on the affected remote host due to the action of the local batch
 queueing system or resource manager.
 
+\subparagraph[tunnel through remote host]{[runtime] $\rightarrow$ [[\_\_NAME\_\_]] $\rightarrow$ [[[remote]]] $\rightarrow$ tunnel through remote host}
+
+If your network configuration blocks all traffic except to a single host
+(for example a supercomputer where access to external networks is blocked 
+except to and from a login node) it may be possible to tunnel ssh connections
+through the remote host.
+
+This option only takes effect if ssh messaging is enabled. Messages will be 
+passed through the remote host instead of directly to the cylc server. This
+requires passwordless access from the task to the remote host and from the 
+remote host to the local host, but no attempt is made to connect to the local
+host from the task itself.
+
+\begin{myitemize}
+\item {\em type:} boolean
+\item {\em default:} False
+\end{myitemize}
+
 \paragraph[{[[[}event hooks{]]]}]{[runtime] $\rightarrow$ [[\_\_NAME\_\_]] $\rightarrow$ [[[event hooks]]]}
 \label{TaskEventHandling}
 
