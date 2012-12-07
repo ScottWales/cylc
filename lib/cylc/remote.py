@@ -80,9 +80,8 @@ class remrun( object ):
         # ssh command and options (X forwarding):
         command = ["ssh", "-oBatchMode=yes", "-Y", user_at_host]
 
-        remote_cylc_environment = """/bin/bash \\
-                [ -f /etc/profile ] && source /etc/profile > /dev/null; \\
-                [ -f ~/.profile ] && source ~/.profile > /dev/null 2>&1; \\
+        remote_cylc_environment = """/usr/bin/env bash \\
+                for FILE in /etc/profile ~/.profile; do test -f $FILE && source $FILE > /dev/null; done \\
         """
 
         if path != []:
