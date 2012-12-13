@@ -77,27 +77,28 @@ class remrun( object ):
         else:
             user_at_host += 'localhost'
 
-        # ssh command and options (X forwarding):
-        command = ["ssh", "-oBatchMode=yes", "-Y", user_at_host]
-
-        remote_cylc_environment = """/bin/bash \\
-                [ -f /etc/profile ] && source /etc/profile > /dev/null; \\
-                [ -f ~/.profile ] && source ~/.profile > /dev/null; \\
-        """
-
+        # Build the remote command
+        command = []
+        ssh_login_shell = True
+        if ssh_login_shell:
+            # A login shell will always source /etc/profile and the user's bash profile file.
+            # To avoid having to quote the entire remote command it is passed as arguments to
+            # the bash script.
+            command += ["bash","--login","-c","'$0 \"$@\"'"]
         if path != []:
             remote_cylc_command = '/'.join(path+["cylc"])
         else:
             remote_cylc_command = "cylc"
-
-        command += [remote_cylc_environment, remote_cylc_command]
-        command += [name]
+        command += [remote_cylc_command, name]
         for var,val in env.iteritems():
             command += ["--env=%s=%s"%(var,val)]
         for arg in self.args:
             command += ["'"+arg+"'"]
             # above: args quoted to avoid interpretation by the shell, 
             # e.g. for match patterns such as '.*' on the command line.
+
+        # ssh command and options (X forwarding):
+        command = ["ssh", "-oBatchMode=yes", "-Y", user_at_host, ' '.join(command)]
 
         print "Remote command re-invocation for", user_at_host
         if self.verbose:
