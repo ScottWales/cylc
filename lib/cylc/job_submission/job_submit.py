@@ -36,14 +36,7 @@ from cylc.suite_host import is_remote_host
 from cylc.TaskID import TaskID
 
 class job_submit(object):
-    REMOTE_COMMAND_TEMPLATE = ( " '"
-            + "test -f /etc/profile && . /etc/profile 1>/dev/null 2>&1;"
-            + "test -f $HOME/.profile && . $HOME/.profile 1>/dev/null 2>&1;"
-            + " mkdir -p $(dirname %(jobfile_path)s)"
-            + " && cat >%(jobfile_path)s"
-            + " && chmod +x %(jobfile_path)s"
-            + " && (%(command)s)"
-            + "'" )
+    REMOTE_COMMAND_TEMPLATE = " cylcsub %(jobfile_path)s"
 
     def __init__( self, task_id, jobconfig, xconfig, submit_num ):
 
