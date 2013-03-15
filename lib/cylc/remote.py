@@ -103,7 +103,7 @@ class remrun( object ):
             # e.g. for match patterns such as '.*' on the command line.
 
         # ssh command and options (X forwarding)
-        command = ["ssh", "-oBatchMode=yes", "-Y", user_at_host, command]
+        command = ["ssh", "-oBatchMode=yes", "-Y", user_at_host] + command
 
         print "Remote command re-invocation for", user_at_host
         if self.verbose:
