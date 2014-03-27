@@ -11,7 +11,7 @@ pass or fail, it will also test any new commits, showing the test results on
 the branch page, e.g. https://github.com/cylc/cylc/branches.
 
 Connecting a Cylc branch
-------------------------
+========================
 
 To make use of Travis you will first need to create a fork of Cylc in Github.
 Log in to https://travis-ci.org using your Github credentials, it will ask for
