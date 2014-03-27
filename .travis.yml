@@ -29,17 +29,17 @@ language: python
 
 # Python versions to test
 python:
-    - "2.6"
-    - "2.7"
+    - '2.6'
+    - '2.7'
 
 # Install dependencies & ssh setup
 install: 
- - "pip install -r requirements.txt"
- - "sudo apt-get install at" 
- - "ssh-keygen -t rsa -f ~/.ssh/id_rsa -N '' -q"
- - "cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys"
- - "ssh-keyscan -t rsa localhost >> ~/.ssh/known_hosts"
- - "cat PATH=$PWD/bin:\$PATH >> ~/.profile"
+ - 'pip install -r requirements.txt'
+ - 'sudo apt-get install at' 
+ - 'ssh-keygen -t rsa -f ~/.ssh/id_rsa -N "" -q'
+ - 'cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys'
+ - 'ssh-keyscan -t rsa localhost >> ~/.ssh/known_hosts'
+ - 'cat PATH=$PWD/bin:\$PATH >> ~/.profile'
 
 # Run tests
-script: "cylc test-battery -- -j 2"
+script: 'cylc test-battery -- -j 2'
