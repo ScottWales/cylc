@@ -39,3 +39,4 @@ Code Contributors (git shortlog -s -n):
   * Tim Whitcomb
   * Alex Reinecke
 
+[![Build Status](https://travis-ci.org/cylc/cylc.svg)](https://travis-ci.org/cylc/cylc)
