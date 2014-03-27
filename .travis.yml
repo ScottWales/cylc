@@ -32,14 +32,17 @@ python:
     - '2.6'
     - '2.7'
 
-# Install dependencies & ssh setup
+# These commands are run before the test
 install: 
+ # Install dependencies
  - 'pip install -r requirements.txt'
  - 'sudo apt-get install at' 
+ # Setup SSH
  - 'ssh-keygen -t rsa -f ~/.ssh/id_rsa -N "" -q'
  - 'cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys'
  - 'ssh-keyscan -t rsa localhost >> ~/.ssh/known_hosts'
+ # Make sure Cylc is in PATH when running jobs
  - 'echo PATH=$PWD/bin:\$PATH >> ~/.profile'
 
 # Run tests
-script: 'PATH=$PWD/bin:$PATH cylc test-battery -- -j 2'
+script: 'PATH=$PWD/bin:$PATH cylc test-battery -- -j 4'
