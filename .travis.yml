@@ -39,7 +39,7 @@ install:
  - "ssh-keygen -t rsa -f ~/.ssh/id_rsa -N '' -q"
  - "cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys"
  - "ssh-keyscan -t rsa localhost >> ~/.ssh/known_hosts"
- - "ssh localhost true"
+ - "cat PATH=$PWD/bin:\$PATH >> ~/.profile"
 
 # Run tests
-script: "PATH=$PWD/bin:$PATH cylc test-battery -- -j 2"
+script: "cylc test-battery -- -j 2"
