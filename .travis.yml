@@ -42,4 +42,4 @@ install:
  - "ssh localhost true"
 
 # Run tests
-script: "bin/cylc test-battery -- -j 2"
+script: "PATH=$PWD/bin:$PATH cylc test-battery -- -j 2"
