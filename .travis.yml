@@ -42,4 +42,4 @@ install:
  - 'echo PATH=$PWD/bin:\$PATH >> ~/.profile'
 
 # Run tests
-script: 'cylc test-battery -- -j 2'
+script: 'PATH=$PWD/bin:$PATH cylc test-battery -- -j 2'
