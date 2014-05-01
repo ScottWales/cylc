@@ -46,3 +46,7 @@ install:
 
 # Run tests
 script: 'PATH=$PWD/bin:$PATH cylc test-battery -- -j 4'
+
+# Check output
+after_script:
+ - 'for file in /tmp/cylc-test/*/*; do echo "== $file =="; cat $file; done'
