@@ -47,11 +47,12 @@ install:
 
     # Make sure Cylc is in PATH when running jobs
     - echo PATH=$PWD/bin:\$PATH >> ~/.profile
+    - source ~/.profile
 
 # Run tests
 script: 
     - ssh localhost true
-    - bin/cylc test-battery tests/triggering -- -j 4
+    - cylc test-battery tests/triggering -- -j 4
 
 # Check output
 after_script:
