@@ -56,10 +56,11 @@ install:
 
 # Run tests
 script: 
-    - cylc test-battery -- -j 4
+    - cylc test-battery lib/parsec/tests/nullcfg/01-empty-file.t lib/parsec/tests/synonyms/02-float.t -- -j 4
 
 # Check output
 after_script:
-    #- for file in $(find $HOME/cylc-run -type f); do echo; echo "== $file =="; cat $file; done
-    - for file in $HOME/cylc-run/*/log/suite/err; do echo; echo "== $file =="; cat $file; done
+    - for file in $(find $HOME/cylc-run -type f); do echo; echo "== $file =="; cat $file; done
+    - for file in $(find /tmp/parsec-tests -type f); do echo; echo "== $file =="; cat $file; done
+    #- for file in $HOME/cylc-run/*/log/suite/err; do echo; echo "== $file =="; cat $file; done
     #- for file in /tmp/cylc-tests-travis/triggering/*/*; do echo; echo "== $file =="; cat $file; done
