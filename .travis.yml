@@ -57,9 +57,10 @@ install:
 # Run tests
 script: 
     - TESTS=$(find . -name *.t -not -path '*/cyclers/*' -not -path '*/parsec/*')
+    - TESTS=tests/reload/05-queues.t 
     - cylc test-battery $TESTS -- -j 4
 
-# The following failures appear to be legitimate:
+# The following failures appear to be artefacts of running on Travis
 # lib/parsec/tests  - Cannot find 'validate' library in lib/parsec
 # tests/cylcers     - Requires GTK for graphing
 
