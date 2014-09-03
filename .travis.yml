@@ -64,7 +64,7 @@ script:
     # lib/parsec/tests  - Cannot find 'validate' library in lib/parsec
     # tests/cylcers     - Requires GTK for graphing
     - TESTS=$(find . -name *.t -type f -not -path '*/cyclers/*' -not -path '*/parsec/*')
-    - cylc test-battery $TESTS -- -j 4
+    - cylc test-battery $TESTS -- -j 1
 
 # Check output (more useful if you narrow down what tests get run)
 after_script:
