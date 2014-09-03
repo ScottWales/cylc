@@ -50,8 +50,10 @@ install:
 
 # Run tests
 script: 
+    - ssh localhost true
     - bin/cylc test-battery tests/triggering -- -j 4
 
 # Check output
 after_script:
     - for file in $HOME/cylc-run/*/log/suite/{out,err}; do echo; echo "== $file =="; cat $file; done
+    - for file in /tmp/cylc-tests-travis/triggering/*/*; do echo; echo "== $file =="; cat $file; done
