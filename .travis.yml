@@ -56,48 +56,12 @@ install:
 
 # Run tests
 script: 
-    - cylc test-battery tests/cyclers/00-daily.t -- -j 4
-
-# Failures
-# lib/parsec/tests/getcfg/00-one-line.t
-# lib/parsec/tests/nullcfg/00-missing-file.t 
-# lib/parsec/tests/synonyms/00-boolean.t
-# lib/parsec/tests/synonyms/01-integer.t
-# lib/parsec/tests/synonyms/03-string.t
-# lib/parsec/tests/synonyms/04-integer_list.t
-# lib/parsec/tests/synonyms/05-float_list.t
-# lib/parsec/tests/synonyms/06-string_list.t
-# tests/cyclers/00-daily.t 
-# tests/cyclers/01-hourly.t
-# tests/cyclers/02-monthly.t
-# tests/cyclers/03-multidaily.t
-# tests/cyclers/04-multihourly.t
-# tests/cyclers/05-multimonthly.t
-# tests/cyclers/06-multiweekly.t
-# tests/cyclers/07-multiyearly.t
-# tests/cyclers/08-offset_final.t
-# tests/cyclers/09-offset_initial.t
-# tests/cyclers/10-r1_final.t
-# tests/cyclers/11-r1_initial.t
-# tests/cyclers/12-r1_middle.t
-# tests/cyclers/13-r5_final.t
-# tests/cyclers/14-r5_initial.t
-# tests/cyclers/15-subhourly.t
-# tests/cyclers/16-weekly.t
-# tests/cyclers/17-yearly.t
-# tests/cyclers/18-r1_multi_start.t
-# tests/cyclers/19-r1_multi_start_back_comp_start_up.t
-# tests/cyclers/20-r1_multi_start_back_comp_async.t
-# tests/cyclers/21-async_integer.t
-# tests/cyclers/22-integer1.t
-# tests/cyclers/23-multidaily_local.t
-# tests/cyclers/25-r1_initial_immortal.t
-# tests/cyclers/28-aeon.t
-# tests/cyclers/28-back_comp_start_up_two_step.t
-# tests/cyclers/29-back_comp_start_up_simple.t 
+    - TESTS=$(find . -name *.t -not -path '*/cyclers/*' -not -path '*/parsec/*')
+    - cylc test-battery $TESTS -- -j 4
 
 # The following failures appear to be legitimate:
 # lib/parsec/tests  - Cannot find 'validate' library in lib/parsec
+# tests/cylcers     - Requires GTK for graphing
 
 # Check output
 after_script:
