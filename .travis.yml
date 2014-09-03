@@ -56,7 +56,11 @@ install:
 
 # Run tests
 script: 
-    - cylc test-battery lib/parsec/tests/nullcfg/01-empty-file.t lib/parsec/tests/synonyms/02-float.t -- -j 4
+    - cylc test-battery tests -- -j 4
+
+# The following failures appear to be legitimate:
+# lib/parsec/tests/nullcfg/01-empty-file.t  - Cannot find 'validate' library in lib/parsec
+# lib/parsec/tests/synonyms/02-float.t
 
 # Check output
 after_script:
