@@ -102,6 +102,7 @@ script:
 # Check output
 after_script:
     - for file in $(find $HOME/cylc-run -type f); do echo; echo "== $file =="; cat $file; done
-    - for file in $(find /tmp/parsec-tests -type f); do echo; echo "== $file =="; cat $file; done
+    - for file in $(find $TMP/cylc-tests-$USER -type f); do echo; echo "== $file =="; cat $file; done
+#    - for file in $(find /tmp/parsec-tests -type f); do echo; echo "== $file =="; cat $file; done
     #- for file in $HOME/cylc-run/*/log/suite/err; do echo; echo "== $file =="; cat $file; done
     #- for file in /tmp/cylc-tests-travis/triggering/*/*; do echo; echo "== $file =="; cat $file; done
