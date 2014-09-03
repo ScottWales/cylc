@@ -42,6 +42,7 @@ before_install:
 
     - cat ~/.profile
     - source ~/.profile
+    - ls -la ~
 
 
 # These commands are run before the test
