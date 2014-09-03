@@ -51,10 +51,11 @@ install:
 
 # Run tests
 script: 
-    - ssh localhost true
-    - cylc test-battery tests/triggering -- -j 4
+    - ssh localhost cylc help
+    - cylc test-battery tests/triggering/01-or-conditional.t -- -j 4
 
 # Check output
 after_script:
-    - for file in $HOME/cylc-run/*/log/suite/{out,err}; do echo; echo "== $file =="; cat $file; done
-    - for file in /tmp/cylc-tests-travis/triggering/*/*; do echo; echo "== $file =="; cat $file; done
+    - for file in $(find $HOME/cylc-run -type f); do echo; echo "== $file =="; cat $file; done
+    #- for file in $HOME/cylc-run/*/log/suite/{out,err}; do echo; echo "== $file =="; cat $file; done
+    #- for file in /tmp/cylc-tests-travis/triggering/*/*; do echo; echo "== $file =="; cat $file; done
