@@ -51,7 +51,7 @@ before_install:
 install: 
     # Install dependencies
     - sudo apt-get install build-essential
-    - sudo apt-get install at python-pip python-dev libgraphviz-dev python-gtk2-dev
+    - sudo apt-get install at python-pip python-dev libgraphviz-dev # python-gtk2-dev
     - pip install -r requirements.txt
 
 # Run tests
@@ -60,6 +60,6 @@ script:
 
 # Check output
 after_script:
-    - for file in $(find $HOME/cylc-run -type f); do echo; echo "== $file =="; cat $file; done
-    #- for file in $HOME/cylc-run/*/log/suite/{out,err}; do echo; echo "== $file =="; cat $file; done
+    #- for file in $(find $HOME/cylc-run -type f); do echo; echo "== $file =="; cat $file; done
+    - for file in $HOME/cylc-run/*/log/suite/err; do echo; echo "== $file =="; cat $file; done
     #- for file in /tmp/cylc-tests-travis/triggering/*/*; do echo; echo "== $file =="; cat $file; done
