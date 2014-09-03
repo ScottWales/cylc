@@ -50,7 +50,7 @@ install:
 
 # Run tests
 script: 
-    - bin/cylc test-battery -- -j 4
+    - bin/cylc test-battery tests/triggering -- -j 4
 
 # Check output
 after_script:
