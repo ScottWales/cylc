@@ -33,15 +33,15 @@ before_install:
     - cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
     - ssh-keyscan -t rsa localhost >> ~/.ssh/known_hosts
 
-    # Setup virtualenv (using system packages for pygtk & pygraphviz)
+    # Setup virtualenv (using system packages for pygtk)
     - virtualenv --system-site-packages $HOME/virtualenv/cylc 
-    - echo "source $HOME/virtualenv/cylc/bin/activate" >> ~/.bashrc
+    - echo "source $HOME/virtualenv/cylc/bin/activate" >> ~/.profile
 
     # Make sure Cylc is in PATH when running jobs
-    - echo "export PATH=$PWD/bin:\$PATH" >> ~/.bashrc
+    - echo "export PATH=$PWD/bin:\$PATH" >> ~/.profile
 
-    - cat ~/.bashrc
-    - source ~/.bashrc
+    - cat ~/.profile
+    - source ~/.profile
 
 
 # These commands are run before the test
