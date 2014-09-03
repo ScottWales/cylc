@@ -32,21 +32,27 @@ python:
     - '2.6'
     - '2.7'
 
+before_install:
+    # Setup SSH
+    - ssh-keygen -t rsa -f ~/.ssh/id_rsa -N "" -q
+    - cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+    - ssh-keyscan -t rsa localhost >> ~/.ssh/known_hosts
+
 # These commands are run before the test
 install: 
- # Install dependencies
- - 'pip install -r requirements.txt'
- - 'sudo apt-get install at' 
- # Setup SSH
- - 'ssh-keygen -t rsa -f ~/.ssh/id_rsa -N "" -q'
- - 'cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys'
- - 'ssh-keyscan -t rsa localhost >> ~/.ssh/known_hosts'
- # Make sure Cylc is in PATH when running jobs
- - 'echo PATH=$PWD/bin:\$PATH >> ~/.profile'
+    # Install dependencies
+    - sudo apt-get install build-essential
+    - sudo apt-get install at python-pip python-dev libgraphviz-dev python-gtk2-dev
+    - pip install -r requirements.txt
+
+    # Make sure Cylc is in PATH when running jobs
+    - echo PATH=$PWD/bin:\$PATH >> ~/.profile
 
 # Run tests
-script: 'PATH=$PWD/bin:$PATH cylc test-battery -- -j 4'
+script: 
+    - bin/cylc test-battery -- -j 4
 
 # Check output
 after_script:
- - 'for file in $(find /tmp/cylc-tests -type f); do echo "== $file =="; cat $file; done'
+    - for file in $(find /tmp/cylc-tests-travis -type f); do echo "== $file =="; cat $file; done
+    - for file in $(find $HOME/cylc-run/*/log/suite -type f); do echo "== $file =="; cat $file; done
