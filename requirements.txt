@@ -1,3 +1,4 @@
 Pyro>=3.10,<4.0
 Jinja2
 pygraphviz
+validate
