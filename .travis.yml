@@ -35,7 +35,7 @@ before_install:
 
     # Setup virtualenv (using system packages for pygtk & pygraphviz)
     - virtualenv --system-site-packages $HOME/virtualenv/cylc 
-    - echo "source $HOME/virtualenv/cylc" >> ~/.bashrc
+    - echo "source $HOME/virtualenv/cylc/bin/activate" >> ~/.bashrc
 
     # Make sure Cylc is in PATH when running jobs
     - echo "export PATH=$PWD/bin:\$PATH" >> ~/.bashrc
