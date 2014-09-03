@@ -46,11 +46,12 @@ install:
     - pip install -r requirements.txt
 
     # Make sure Cylc is in PATH when running jobs
-    - echo PATH=$PWD/bin:\$PATH >> ~/.profile
-    - source ~/.profile
+    - echo PATH=$PWD/bin:\$PATH >> ~/.bashrc
+    - source ~/.bashrc
 
 # Run tests
 script: 
+    - which python
     - ssh localhost cylc help
     - cylc test-battery tests/triggering/01-or-conditional.t -- -j 4
 
