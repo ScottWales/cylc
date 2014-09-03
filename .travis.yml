@@ -27,16 +27,22 @@
 ---
 language: python
 
-# Python versions to test
-python:
-    - '2.6'
-    - '2.7'
-
 before_install:
     # Setup SSH
     - ssh-keygen -t rsa -f ~/.ssh/id_rsa -N "" -q
     - cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
     - ssh-keyscan -t rsa localhost >> ~/.ssh/known_hosts
+
+    # Setup virtualenv (using system packages for pygtk & pygraphviz)
+    - virtualenv --system-site-packages $HOME/virtualenv/cylc 
+    - echo "source $HOME/virtualenv/cylc" >> ~/.bashrc
+
+    # Make sure Cylc is in PATH when running jobs
+    - echo "export PATH=$PWD/bin:\$PATH" >> ~/.bashrc
+
+    - cat ~/.bashrc
+    - source ~/.bashrc
+
 
 # These commands are run before the test
 install: 
@@ -44,10 +50,6 @@ install:
     - sudo apt-get install build-essential
     - sudo apt-get install at python-pip python-dev libgraphviz-dev python-gtk2-dev
     - pip install -r requirements.txt
-
-    # Make sure Cylc is in PATH when running jobs
-    - echo PATH=$PWD/bin:\$PATH >> ~/.bashrc
-    - source ~/.bashrc
 
 # Run tests
 script: 
