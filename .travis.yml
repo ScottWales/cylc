@@ -34,6 +34,7 @@ before_install:
     - ssh-keyscan -t rsa localhost >> ~/.ssh/known_hosts
 
     # Clear bashrc
+    - cat ~/.bashrc
     - echo > ~/.bashrc
 
     # Setup virtualenv (using system packages for pygtk)
