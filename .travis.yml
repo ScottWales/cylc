@@ -54,4 +54,4 @@ script:
 
 # Check output
 after_script:
-    - for file in $HOME/cylc-run/*/log/suite/err; do echo; echo "== $file =="; cat $file; done
+    - for file in $HOME/cylc-run/*/log/suite/{out,err}; do echo; echo "== $file =="; cat $file; done
