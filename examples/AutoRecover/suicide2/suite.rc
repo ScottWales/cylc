@@ -15,8 +15,8 @@ and use normal task retries.
 #   foo | bar => !baz
 
 [scheduling]
-    initial cycle time = 2010080800
-    final cycle time = 2010080900
+    initial cycle point = 2010080800
+    final cycle point = 2010080900
     [[dependencies]]
         [[[0]]]
             graph = """
@@ -40,4 +40,3 @@ check1 | check2 | check3 => PostVAR
     #[[check1]] # first check fails, OR:
     [[check1, check2]] # first and second check fails
         inherit = FAIL
-

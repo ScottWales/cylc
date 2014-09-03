@@ -23,7 +23,7 @@ from passphrase import passphrase
 from registration import localdb
 import datetime
 import Pyro.errors, Pyro.core
-from cfgspec.site import sitecfg
+from cylc.cfgspec.globalcfg import GLOBAL_CFG
 import flags
 
 class SuiteIdentificationError( Exception ):
@@ -54,7 +54,7 @@ class OtherServerFoundError( SuiteIdentificationError ):
     pass
 
 class port_interrogator(object):
-    # find which suite or lockserver is running on a given port
+    # find which suite is running on a given port
     def __init__( self, host, port, my_passphrases=None, pyro_timeout=None ):
         self.host = host
         self.port = port
@@ -128,8 +128,8 @@ def cylcid_uri( host, port ):
 def get_port( suite, owner=user, host=get_hostname(), pphrase=None, pyro_timeout=None ):
     # Scan ports until a particular suite is found.
 
-    pyro_base_port = sitecfg.get( ['pyro','base port'] )
-    pyro_port_range = sitecfg.get( ['pyro','maximum number of ports'] )
+    pyro_base_port = GLOBAL_CFG.get( ['pyro','base port'] )
+    pyro_port_range = GLOBAL_CFG.get( ['pyro','maximum number of ports'] )
 
     for port in range( pyro_base_port, pyro_base_port + pyro_port_range ):
         uri = cylcid_uri( host, port )
@@ -217,8 +217,8 @@ def scan( host=get_hostname(), db=None, pyro_timeout=None, silent=False ):
     #print 'SCANNING PORTS'
     # scan all cylc Pyro ports for cylc suites
 
-    pyro_base_port = sitecfg.get( ['pyro','base port'] )
-    pyro_port_range = sitecfg.get( ['pyro','maximum number of ports'] )
+    pyro_base_port = GLOBAL_CFG.get( ['pyro','base port'] )
+    pyro_port_range = GLOBAL_CFG.get( ['pyro','maximum number of ports'] )
 
     # In non-verbose mode print nothing (scan is used by cylc db viewer).
 
@@ -268,7 +268,5 @@ def scan( host=get_hostname(), db=None, pyro_timeout=None, silent=False ):
             if flags.verbose:
                 after = datetime.datetime.now()
                 print "Pyro connection on port " +str(port) + " took: " + str( after - before )
-            # found a cylc suite or lock server
             suites.append( ( name, port ) )
     return suites
-

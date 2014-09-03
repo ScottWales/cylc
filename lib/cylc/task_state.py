@@ -31,22 +31,49 @@ class TaskStateError( Exception ):
 
 class task_state(object):
 
-    legal = [ 'waiting',
-              'runahead',
-              'held',
-              'queued',
-              'ready',
-              'submitted',
-              'submit-failed',
-              'submit-retrying',
-              'running',
-              'succeeded',
-              'failed',
-              'retrying' ]
+    legal = [
+        'waiting',
+        'held',
+        'queued',
+        'ready',
+        'submitted',
+        'submit-failed',
+        'submit-retrying',
+        'running',
+        'succeeded',
+        'failed',
+        'retrying'
+    ]
+
+    legal_for_reset = [
+        'waiting',
+        'held',
+        'ready',
+        'succeeded',
+        'failed',
+        'spawn'
+    ]
+
+    legal_for_trigger = {
+        'submit' : 'submitted',
+        'submit-fail' : 'submit-failed',
+        'start' : 'started',
+        'succeed' : 'succeeded',
+        'fail' : 'failed'
+    }
 
     @classmethod
-    def is_legal( cls, state ):
+    def is_legal(cls, state):
         return state in cls.legal
+
+    @classmethod
+    def get_legal_trigger_state(cls, str):
+        if str in cls.legal_for_trigger.values():
+            return str
+        elif str in cls.legal_for_trigger.keys(): 
+            return cls.legal_for_trigger[str]
+        else:
+            raise TaskStateError("Illegal trigger state: %s" % str)
 
     # GUI button labels
     labels = {
@@ -61,7 +88,6 @@ class task_state(object):
             'failed'     : '_failed',
             'retrying'   : 'retr_ying',
             'held'       : '_held',
-            'runahead'   : 'r_unahead'
             }
     # terminal monitor color control codes
     ctrl = {
@@ -76,8 +102,8 @@ class task_state(object):
             'failed'     : "\033[1;37;41m",
             'retrying'   : "\033[1;35m",
             'held'       : "\033[1;37;43m",
-            'runahead'   : "\033[1;37;44m"
             }
+
     ctrl_end = "\033[0m"
 
     # Internal to this class spawned state is a string
@@ -174,4 +200,3 @@ class task_state(object):
                 state[ item ] = value
 
         return state
-

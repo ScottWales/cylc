@@ -27,7 +27,7 @@ import subprocess
 from cylc.suite_host import is_remote_host
 from cylc.owner import is_remote_user
 from dbchooser import dbchooser
-from combo_logviewer import combo_logviewer
+from combo_logviewer import ComboLogViewer
 from warning_dialog import warning_dialog, info_dialog
 
 try:
@@ -49,8 +49,7 @@ from util import (get_icon, get_image_dir, get_logo, EntryTempText,
                            EntryDialog, setup_icons, set_exception_hook_dialog)
 from cylc import cylc_pyro_client
 from cylc.state_summary import extract_group_state
-from cylc.cycle_time import ct, CycleTimeError
-from cylc.TaskID import TaskID, TaskIDError
+import cylc.TaskID
 from cylc.version import cylc_version
 from cylc.strftime import strftime
 from option_group import controlled_option_group
@@ -61,11 +60,13 @@ from datetime import datetime
 from gcapture import gcapture_tmpfile
 from cylc.task_state import task_state
 from cylc.passphrase import passphrase
-
 from cylc.suite_logging import suite_log
 from cylc.registration import localdb
-from cylc.cfgspec.site import sitecfg
+from cylc.cfgspec.globalcfg import GLOBAL_CFG
 from cylc.cfgspec.gcylc import gcfg
+from cylc.wallclock import get_time_string_from_unix_time
+from isodatetime.parsers import TimePointParser
+
 
 def run_get_stdout( command, filter=False ):
     try:
@@ -104,7 +105,7 @@ Class to hold initialisation data.
     """
     def __init__( self, suite, owner, host, port, db,
             pyro_timeout, template_vars, template_vars_file,
-            ungrouped_views ):
+            ungrouped_views, use_defn_order ):
         self.suite = suite
         self.owner = owner
         self.host = host
@@ -123,9 +124,10 @@ Class to hold initialisation data.
         self.template_vars = template_vars
         self.template_vars_file = template_vars_file
         self.ungrouped_views = ungrouped_views
+        self.use_defn_order = use_defn_order
 
-        self.cylc_tmpdir = sitecfg.get_tmpdir()
-        self.no_prompt = sitecfg.get( ['disable interactive command prompts'] )
+        self.cylc_tmpdir = GLOBAL_CFG.get_tmpdir()
+        self.no_prompt = GLOBAL_CFG.get( ['disable interactive command prompts'] )
 
         self.imagedir = get_image_dir()
 
@@ -147,14 +149,14 @@ class InfoBar(gtk.VBox):
 Class to create an information bar.
     """
 
-    def __init__( self, host, theme,
+    def __init__( self, host, theme, dot_size,
                   status_changed_hook=lambda s: False,
                   log_launch_hook=lambda: False ):
         super(InfoBar, self).__init__()
 
         self.host = host
 
-        self.set_theme( theme )
+        self.set_theme(theme, dot_size)
 
         self._suite_states = []
         self._is_suite_stopped = False
@@ -230,8 +232,8 @@ Class to create an information bar.
         eb.add( self.log_widget )
         hbox.pack_start( eb, False )
 
-    def set_theme( self, theme ):
-        self.dots = DotMaker( theme )
+    def set_theme(self, theme, dot_size):
+        self.dots = DotMaker(theme, size=dot_size)
 
     def set_log(self, log_text, log_size):
         """Set log text."""
@@ -338,7 +340,8 @@ Class to create an information bar.
             #o> summary += ": {0} failed tasks".format(num_failed)
             summary += ": %s failed tasks" % num_failed
         self.set_status(summary)
-        self.set_time( strftime( glob["last_updated"], "%Y/%m/%d %H:%M:%S"))
+        dt = glob["last_updated"]
+        self.set_time(get_time_string_from_unix_time(dt))
 
     def set_time(self, time):
         """Set last update text."""
@@ -390,10 +393,12 @@ Main Control GUI that displays one or more views or interfaces to the suite.
 
         self.cfg = InitData( suite, owner, host, port, db,
                 pyro_timeout, template_vars, template_vars_file,
-                gcfg.get( ["ungrouped views"] ) )
+                gcfg.get( ["ungrouped views"] ),
+                gcfg.get( ["sort by definition order"] ) )
 
         self.theme_name = gcfg.get( ['use theme'] )
         self.theme = gcfg.get( ['themes', self.theme_name ] )
+        self.dot_size = gcfg.get(['dot icon size'])
 
         self.current_views = []
 
@@ -524,6 +529,13 @@ Main Control GUI that displays one or more views or interfaces to the suite.
         self.theme = gcfg.get( ['themes',item.theme_name] )
         self.restart_views()
 
+    def set_dot_size(self, item, dsize):
+        """Change self.dot_size and then replace each view with itself"""
+        if not item.get_active():
+            return False
+        self.dot_size = dsize
+        self.restart_views()
+
     def restart_views( self ):
         """Replace each view with itself"""
         if not self.current_views[0]:
@@ -535,7 +547,7 @@ Main Control GUI that displays one or more views or interfaces to the suite.
             if self.current_views[view_num]:
                 # (may be None if the second view pane is turned off)
                 self.switch_view( self.current_views[view_num].name, view_num, force=True )
-        self.info_bar.set_theme( self.theme )
+        self.info_bar.set_theme( self.theme, self.dot_size )
         self.info_bar._set_state_widget() # (to update info bar immediately)
         self.update_theme_legend()
         return False
@@ -664,6 +676,7 @@ Main Control GUI that displays one or more views or interfaces to the suite.
                                                    self.cfg,
                                                    self.updater,
                                                    self.theme,
+                                                   self.dot_size,
                                                    self.info_bar,
                                                    self.get_right_click_menu,
                                                    self.log_colors,
@@ -812,7 +825,7 @@ Main Control GUI that displays one or more views or interfaces to the suite.
 
     def stopsuite( self, bt, window, kill_cb,
             stop_rb, stopat_rb, stopct_rb, stoptt_rb, stopnow_rb, stopquick_rb,
-            stoptag_entry, stopclock_entry, stoptask_entry ):
+            stoppoint_entry, stopclock_entry, stoptask_entry ):
         stop = False
         stopat = False
         stopnow = False
@@ -829,18 +842,13 @@ Main Control GUI that displays one or more views or interfaces to the suite.
 
         elif stopat_rb.get_active():
             stopat = True
-            stoptag = stoptag_entry.get_text()
-            if stoptag == '':
-                warning_dialog( "ERROR: No stop TAG entered", self.window ).warn()
+            stop_point_string = stoppoint_entry.get_text()
+            if stop_point_string == '':
+                warning_dialog(
+                    "ERROR: No stop CYCLE_POINT entered", self.window
+                ).warn()
                 return
-            try:
-                ct(stoptag)
-            except CycleTimeError,x:
-                try:
-                    int(stoptag)
-                except ValueError:
-                    warning_dialog( 'ERROR, Invalid stop tag: ' + stoptag, self.window ).warn()
-                    return
+            # TODO ISO - RESTORE CYCLE TIME VALIDITY CHECK ON stoppoint?
 
         elif stopnow_rb.get_active():
             stopnow = True
@@ -855,13 +863,10 @@ Main Control GUI that displays one or more views or interfaces to the suite.
                 warning_dialog( "ERROR: No stop time entered", self.window ).warn()
                 return
             try:
-                # YYYY/MM/DD-HH:mm
-                date, time = stopclock_time.split('-')
-                yyyy, mm, dd = date.split('/')
-                HH,MM = time.split(':')
-                stop_dtime = datetime( int(yyyy), int(mm), int(dd), int(HH), int(MM) )
-            except:
-                warning_dialog( "ERROR: Bad datetime (YYYY/MM/DD-HH:mm): " + stopclock_time,
+                parser = TimePointParser()
+                timepoint = parser.parse(stopclock_time)
+            except ValueError:
+                warning_dialog( "ERROR: Bad ISO 8601 date-time: " + stopclock_time,
                                 self.window ).warn()
                 return
 
@@ -871,11 +876,14 @@ Main Control GUI that displays one or more views or interfaces to the suite.
             if stoptask_id == '':
                 warning_dialog( "ERROR: No stop task ID entered", self.window ).warn()
                 return
-            try:
-                tid = TaskID( stoptask_id )
-            except TaskIDError,x:
-                warning_dialog( "ERROR: Bad task ID (TASK"+TaskID.DELIM+"YYYYMMDDHH): " + stoptask_id,
-                                self.window ).warn()
+            if not cylc.TaskID.is_valid_id( stoptask_id ):
+                warning_dialog(
+                    "ERROR: Bad task ID (%s): %s" % (
+                        cylc.TaskID.get( "TASK", "CYCLE_POINT"),
+                        stoptask_id
+                    ),
+                    self.window
+                ).warn()
                 return
             else:
                 stoptask_id = tid.getstr()
@@ -891,7 +899,7 @@ Main Control GUI that displays one or more views or interfaces to the suite.
             if stop:
                 result = god.put( 'stop cleanly', killfirst )
             elif stopat:
-                result = god.put( 'stop after tag', stoptag )
+                result = god.put( 'stop after point', stop_point_string )
             elif stopnow:
                 result = god.put( 'stop now' )
             elif stopquick:
@@ -908,9 +916,9 @@ Main Control GUI that displays one or more views or interfaces to the suite.
             #else:
             #    info_dialog( result[1], self.window ).inform()
 
-    def loadctimes( self, bt, startentry, stopentry ):
-        item1 = " -i '[scheduling]initial cycle time'"
-        item2 = " -i '[scheduling]final cycle time'"
+    def load_point_strings( self, bt, startentry, stopentry ):
+        item1 = " -i '[scheduling]initial cycle point'"
+        item2 = " -i '[scheduling]final cycle point'"
         command = "cylc get-suite-config --mark-up --host=" + self.cfg.host + \
                 " " + self.cfg.template_vars_opts + " " + \
                 " --user=" + self.cfg.owner + " --one-line" + item1 + item2 + " " + \
@@ -920,14 +928,14 @@ Main Control GUI that displays one or more views or interfaces to the suite.
         if res[0]:
             out1, out2 = res[1][0].split()
             if out1 == "None" and out2 == "None":  # (default value from suite.rc spec)
-                info_dialog( """Initial and final cycle times have not
+                info_dialog( """Initial and final cycle points have not
 been defined for this suite""").inform()
             elif out1 == "None":
-                info_dialog( """An initial cycle time has not
+                info_dialog( """An initial cycle point has not
 been defined for this suite""").inform()
                 stopentry.set_text( out2 )
             elif out2 == "None":
-                info_dialog( """A final cycle time has not
+                info_dialog( """A final cycle point has not
 been defined for this suite""").inform()
                 startentry.set_text( out1 )
             else:
@@ -937,8 +945,8 @@ been defined for this suite""").inform()
             pass # error dialogs done by run_get_stdout()
 
     def startsuite( self, bt, window,
-            coldstart_rb, warmstart_rb, rawstart_rb, restart_rb,
-            entry_ctime, stoptime_entry, statedump_entry,
+            coldstart_rb, warmstart_rb, restart_rb,
+            entry_point_string, stop_point_string_entry, statedump_entry,
             optgroups, mode_live_rb, mode_sim_rb, mode_dum_rb, hold_cb,
             holdtime_entry ):
 
@@ -950,9 +958,6 @@ been defined for this suite""").inform()
         elif warmstart_rb.get_active():
             method = 'warmstart'
             options += ' -w'
-        elif rawstart_rb.get_active():
-            method = 'rawstart'
-            options += ' -r'
         elif restart_rb.get_active():
             method = 'restart'
             command = 'cylc restart ' + self.cfg.template_vars_opts
@@ -964,24 +969,14 @@ been defined for this suite""").inform()
         elif mode_dum_rb.get_active():
             command += ' --mode=dummy'
 
-        ctime = ''
+        point_string = ''
         if method != 'restart':
             # start time
-            ctime = entry_ctime.get_text()
-            if ctime != '':
-                try:
-                    ct(ctime)
-                except CycleTimeError,x:
-                    warning_dialog( str(x), self.window ).warn()
-                    return
+            point_string = entry_point_string.get_text()
+            # TODO ISO - RESTORE CYCLE TIME VALIDITY CHECK ON point_string AND ste?
 
-        ste = stoptime_entry.get_text()
+        ste = stop_point_string_entry.get_text()
         if ste:
-            try:
-                ct(ste)
-            except CycleTimeError,x:
-                warning_dialog( str(x), self.window ).warn()
-                return
             options += ' --until=' + ste
 
         hetxt = holdtime_entry.get_text()
@@ -996,7 +991,7 @@ been defined for this suite""").inform()
 
         options += ' --user=' + self.cfg.owner + ' --host=' + self.cfg.host
 
-        command += ' ' + options + ' ' + self.cfg.suite + ' ' + ctime
+        command += ' ' + options + ' ' + self.cfg.suite + ' ' + point_string
 
         print command
 
@@ -1099,7 +1094,7 @@ The Cylc Suite Engine.
 
     def _get_right_click_menu_items( self, task_id, task_is_family=False ):
         # Return the default menu items for a task
-        name, ctime = task_id.split(TaskID.DELIM)
+        name, point_string = cylc.TaskID.split( task_id )
 
         items = []
 
@@ -1345,7 +1340,8 @@ The Cylc Suite Engine.
         label = gtk.Label( 'TASK: ' + task_id )
         vbox.pack_start( label, True )
 
-        label = gtk.Label( 'DEP (NAME'+TaskID.DELIM+'TAG or message)' )
+        label = gtk.Label(
+            'DEP (NAME' + cylc.TaskID.DELIM + 'CYCLE_POINT or message)' )
 
         entry = gtk.Entry()
 
@@ -1374,24 +1370,24 @@ The Cylc Suite Engine.
 
     def add_prerequisite( self, w, entry, window, task_id ):
         dep = entry.get_text()
-        m = re.match( '^(\w+)'+TaskID.DELIM_RE+'(\w+)$', dep )
+        m = re.match( '^(\w+)' + cylc.TaskID.DELIM_RE + '(\w+)$', dep )
         if m:
-            #name, ctime = m.groups()
+            #name, point_string = m.groups()
             msg = dep + ' succeeded'
         else:
             msg = dep
 
         try:
-            (name, cycle ) = task_id.split(TaskID.DELIM)
+            (name, cycle ) = cylc.TaskID.split( task_id )
         except ValueError:
-            warning_dialog( "ERROR, Task or Group ID must be NAME"+TaskID.DELIM+"YYYYMMDDHH",
-                            self.window ).warn()
+            warning_dialog(
+                "ERROR, Task or Group ID must be " +
+                cylc.TaskID.get( "NAME", "CYCLE_POINT" ),
+                self.window
+            ).warn()
             return
-        try:
-            ct(cycle)
-        except CycleTimeError,x:
-            warning_dialog( str(x), self.window ).warn()
-            return
+
+        # TODO ISO - RESTORE VALIDITY CHECK ON cycle?
 
         window.destroy()
         try:
@@ -1540,12 +1536,14 @@ shown here in the state they were in at the time of triggering.''' )
         if not self.get_confirmation( cmd, task_id ):
             return
 
-        name, tag = task_id.split(TaskID.DELIM)
+        name, point_string = cylc.TaskID.split( task_id )
         try:
             if stop:
-                result = self.get_pyro( 'command-interface' ).put( 'hold task now', name, tag, is_family )
+                result = self.get_pyro( 'command-interface' ).put(
+                    'hold task now', name, point_string, is_family)
             else:
-                result = self.get_pyro( 'command-interface' ).put( 'release task', name, tag, is_family )
+                result = self.get_pyro( 'command-interface' ).put(
+                    'release task', name, point_string, is_family)
         except Exception, x:
             # the suite was probably shut down by another process
             warning_dialog( x.__str__(), self.window ).warn()
@@ -1559,9 +1557,10 @@ shown here in the state they were in at the time of triggering.''' )
         if not self.get_confirmation( cmd, task_id ):
             return
 
-        name, tag = task_id.split(TaskID.DELIM)
+        name, point_string = cylc.TaskID.split( task_id )
         try:
-            result = self.get_pyro( 'command-interface' ).put( 'trigger task', name, tag, is_family )
+            result = self.get_pyro( 'command-interface' ).put(
+                'trigger task', name, point_string, is_family)
         except Exception, x:
             # the suite was probably shut down by another process
             warning_dialog( x.__str__(), self.window ).warn()
@@ -1574,9 +1573,10 @@ shown here in the state they were in at the time of triggering.''' )
         if not self.get_confirmation( cmd, task_id ):
             return
 
-        name, tag = task_id.split(TaskID.DELIM)
+        name, point_string = cylc.TaskID.split( task_id )
         try:
-            result = self.get_pyro( 'command-interface' ).put( 'poll tasks', name, tag, is_family )
+            result = self.get_pyro( 'command-interface' ).put(
+                'poll tasks', name, point_string, is_family)
         except Exception, x:
             # the suite was probably shut down by another process
             warning_dialog( x.__str__(), self.window ).warn()
@@ -1589,9 +1589,10 @@ shown here in the state they were in at the time of triggering.''' )
         if not self.get_confirmation( cmd, task_id ):
             return
 
-        name, tag = task_id.split(TaskID.DELIM)
+        name, point_string = cylc.TaskID.split( task_id )
         try:
-            result = self.get_pyro( 'command-interface' ).put( 'kill tasks', name, tag, is_family )
+            result = self.get_pyro( 'command-interface' ).put(
+                'kill tasks', name, point_string, is_family)
         except Exception, x:
             # the suite was probably shut down by another process
             warning_dialog( x.__str__(), self.window ).warn()
@@ -1604,13 +1605,14 @@ shown here in the state they were in at the time of triggering.''' )
             return False
         cmd = "reset"
 
-        name, tag = task_id.split(TaskID.DELIM)
+        name, point_string = cylc.TaskID.split( task_id )
         msg = "reset " + task_id + " to " + state +"?"
         if not self.get_confirmation( cmd, task_id, msg ):
             return
 
         try:
-            result = self.get_pyro( 'command-interface' ).put( 'reset task state', name, tag, state, is_family )
+            result = self.get_pyro( 'command-interface' ).put(
+                'reset task state', name, point_string, state, is_family)
         except Exception, x:
             # the suite was probably shut down by another process
             warning_dialog( x.__str__(), self.window ).warn()
@@ -1624,9 +1626,10 @@ shown here in the state they were in at the time of triggering.''' )
         if not self.get_confirmation( cmd, task_id, msg ):
             return
 
-        name, tag = task_id.split(TaskID.DELIM)
+        name, point_string = cylc.TaskID.split( task_id )
         try:
-            result = self.get_pyro( 'command-interface' ).put( 'remove task', name, tag, is_family, True )
+            result = self.get_pyro( 'command-interface' ).put(
+                'remove task', name, point_string, is_family, True)
         except Exception, x:
             warning_dialog(str(x), self.window).warn()
             return
@@ -1639,9 +1642,10 @@ shown here in the state they were in at the time of triggering.''' )
         if not self.get_confirmation( cmd, task_id, msg ):
             return
 
-        name, tag = task_id.split(TaskID.DELIM)
+        name, point_string = cylc.TaskID.split( task_id )
         try:
-            result = self.get_pyro( 'command-interface' ).put( 'remove task', name, tag, is_family, False )
+            result = self.get_pyro( 'command-interface' ).put(
+                'remove task', name, point_string, is_family, False)
         except Exception, x:
             warning_dialog(str(x), self.window).warn()
             return
@@ -1652,7 +1656,8 @@ shown here in the state they were in at the time of triggering.''' )
         stop = e.get_text()
         w.destroy()
         try:
-            result = self.get_pyro( 'command-interface' ).put( 'purge tree', task_id, stop )
+            result = self.get_pyro( 'command-interface' ).put(
+                'purge tree', task_id, stop)
         except Exception, x:
             warning_dialog(str(x), self.window).warn()
             return
@@ -1665,7 +1670,8 @@ shown here in the state they were in at the time of triggering.''' )
         stop = e.get_text()
         w.destroy()
         try:
-            result = self.get_pyro( 'command-interface' ).put( 'purge tree', task_id, stop )
+            result = self.get_pyro( 'command-interface' ).put(
+                'purge tree', task_id, stop)
         except Exception, x:
             warning_dialog(str(x), self.window).warn()
             return
@@ -1706,24 +1712,25 @@ shown here in the state they were in at the time of triggering.''' )
         stopquick_rb = gtk.RadioButton( stop_rb, "Quickly (see Help)" )
         vbox.pack_start (stopquick_rb, True)
 
-        stopat_rb = gtk.RadioButton( stop_rb, "After all tasks have passed a given TAG" )
+        stopat_rb = gtk.RadioButton(
+            stop_rb, "After all tasks have passed a given CYCLE_POINT" )
         vbox.pack_start (stopat_rb, True)
 
         st_box = gtk.HBox()
-        label = gtk.Label( "STOP (CYCLE or INT')" )
+        label = gtk.Label( "STOP CYCLE POINT" )
         st_box.pack_start( label, True )
-        stoptime_entry = gtk.Entry()
-        stoptime_entry.set_max_length(14)
-        stoptime_entry.set_sensitive(False)
+        stop_point_string_entry = gtk.Entry()
+        stop_point_string_entry.set_max_length(14)
+        stop_point_string_entry.set_sensitive(False)
         label.set_sensitive(False)
-        st_box.pack_start (stoptime_entry, True)
+        st_box.pack_start (stop_point_string_entry, True)
         vbox.pack_start( st_box )
 
         stopct_rb = gtk.RadioButton( stop_rb, "After a given wall clock time" )
         vbox.pack_start (stopct_rb, True)
 
         sc_box = gtk.HBox()
-        label = gtk.Label( 'STOP (YYYY/MM/DD-HH:mm)' )
+        label = gtk.Label( 'STOP (ISO 8601 date-time e.g. CCYYMMDDThhmmZ)' )
         sc_box.pack_start( label, True )
         stopclock_entry = gtk.Entry()
         stopclock_entry.set_max_length(16)
@@ -1738,7 +1745,8 @@ shown here in the state they were in at the time of triggering.''' )
         stop_rb.set_active(True)
 
         tt_box = gtk.HBox()
-        label = gtk.Label( 'STOP (task NAME'+TaskID.DELIM+'TAG)' )
+        label = gtk.Label( 'STOP (task ' +
+                           cylc.TaskID.get( 'NAME', 'CYCLE_POINT' ) + ')' )
         tt_box.pack_start( label, True )
         stoptask_entry = gtk.Entry()
         stoptask_entry.set_sensitive(False)
@@ -1759,7 +1767,7 @@ shown here in the state they were in at the time of triggering.''' )
         stop_button = gtk.Button( "_Stop" )
         stop_button.connect("clicked", self.stopsuite, window, kill_cb,
                 stop_rb, stopat_rb, stopct_rb, stoptt_rb, stopnow_rb, stopquick_rb,
-                stoptime_entry, stopclock_entry, stoptask_entry )
+                stop_point_string_entry, stopclock_entry, stoptask_entry )
 
         help_button = gtk.Button( "_Help" )
         help_button.connect("clicked", self.command_help, "control", "stop" )
@@ -1800,7 +1808,7 @@ shown here in the state they were in at the time of triggering.''' )
             box.set_sensitive(True)
 
     def startup_method( self, b, meth, ic_box, is_box ):
-        if meth in ['cold', 'warm', 'raw']:
+        if meth in ['cold', 'warm']:
             for ch in ic_box.get_children():
                 ch.set_sensitive( True )
             for ch in is_box.get_children():
@@ -1830,8 +1838,6 @@ shown here in the state they were in at the time of triggering.''' )
         box.pack_start (restart_rb, True)
         warmstart_rb = gtk.RadioButton( coldstart_rb, "Warm-start" )
         box.pack_start (warmstart_rb, True)
-        rawstart_rb = gtk.RadioButton( coldstart_rb, "Raw-start" )
-        box.pack_start (rawstart_rb, True)
         coldstart_rb.set_active(True)
         vbox.pack_start( box )
 
@@ -1853,25 +1859,28 @@ shown here in the state they were in at the time of triggering.''' )
         ic_box = gtk.HBox()
         label = gtk.Label( 'START' )
         ic_box.pack_start( label, True )
-        ctime_entry = gtk.Entry()
-        ctime_entry.set_max_length(14)
-        ic_box.pack_start (ctime_entry, True)
+        point_string_entry = gtk.Entry()
+        point_string_entry.set_max_length(20)
+        ic_box.pack_start (point_string_entry, True)
 
         nvbox.pack_start( ic_box )
 
         fc_box = gtk.HBox()
         label = gtk.Label( '[STOP]' )
         fc_box.pack_start( label, True )
-        stoptime_entry = gtk.Entry()
-        stoptime_entry.set_max_length(14)
-        fc_box.pack_start (stoptime_entry, True)
+        stop_point_string_entry = gtk.Entry()
+        stop_point_string_entry.set_max_length(20)
+        fc_box.pack_start (stop_point_string_entry, True)
 
         nvbox.pack_start( fc_box )
 
         nhbox.pack_start(nvbox)
 
         load_button = gtk.Button( "_Load" )
-        load_button.connect("clicked", self.loadctimes, ctime_entry, stoptime_entry )
+        load_button.connect(
+            "clicked", self.load_point_strings,
+            point_string_entry, stop_point_string_entry
+        )
 
         nhbox.pack_start(load_button)
 
@@ -1889,7 +1898,6 @@ shown here in the state they were in at the time of triggering.''' )
 
         coldstart_rb.connect( "toggled", self.startup_method, "cold", ic_box, is_box )
         warmstart_rb.connect( "toggled", self.startup_method, "warm", ic_box, is_box )
-        rawstart_rb.connect ( "toggled", self.startup_method, "raw",  ic_box, is_box )
         restart_rb.connect(   "toggled", self.startup_method, "re",   ic_box, is_box )
 
         hbox = gtk.HBox()
@@ -1929,8 +1937,8 @@ shown here in the state they were in at the time of triggering.''' )
 
         start_button = gtk.Button( "_Start" )
         start_button.connect("clicked", self.startsuite, window,
-                coldstart_rb, warmstart_rb, rawstart_rb, restart_rb,
-                ctime_entry, stoptime_entry,
+                coldstart_rb, warmstart_rb, restart_rb,
+                point_string_entry, stop_point_string_entry,
                 statedump_entry, optgroups, mode_live_rb, mode_sim_rb,
                 mode_dum_rb, hold_cb, holdtime_entry )
 
@@ -1993,7 +2001,7 @@ shown here in the state they were in at the time of triggering.''' )
         window.add( vbox )
         window.show_all()
 
-    def ctime_entry_popup( self, b, callback, title ):
+    def point_string_entry_popup( self, b, callback, title ):
         window = gtk.Window()
         window.modify_bg( gtk.STATE_NORMAL,
                 gtk.gdk.color_parse( self.log_colors.get_color()))
@@ -2009,15 +2017,15 @@ shown here in the state they were in at the time of triggering.''' )
         vbox = gtk.VBox()
 
         hbox = gtk.HBox()
-        label = gtk.Label( 'Cycle Time' )
+        label = gtk.Label( 'Cycle Point' )
         hbox.pack_start( label, True )
-        entry_ctime = gtk.Entry()
-        entry_ctime.set_max_length(14)
-        hbox.pack_start (entry_ctime, True)
+        entry_point_string = gtk.Entry()
+        entry_point_string.set_max_length(14)
+        hbox.pack_start (entry_point_string, True)
         vbox.pack_start(hbox)
 
         go_button = gtk.Button( "Go" )
-        go_button.connect("clicked", callback, window, entry_ctime )
+        go_button.connect("clicked", callback, window, entry_point_string )
         vbox.pack_start(go_button)
 
         window.add( vbox )
@@ -2058,21 +2066,21 @@ shown here in the state they were in at the time of triggering.''' )
             entry_match.set_text(kwargs['name'])
 
         hbox = gtk.HBox()
-        label = gtk.Label( 'TAG' )
+        label = gtk.Label( 'CYCLE_POINT' )
         hbox.pack_start( label, True )
-        entry_tag = gtk.Entry()
-        hbox.pack_start (entry_tag, True)
+        entry_point_string = gtk.Entry()
+        hbox.pack_start (entry_point_string, True)
         vbox.pack_start(hbox)
 
-        if "tag" in kwargs:
-            entry_tag.set_text(kwargs['tag'])
+        if "point_string" in kwargs:
+            entry_point_string.set_text(kwargs['point_string'])
 
         hbox = gtk.HBox()
         label = gtk.Label( '[STOP]' )
         hbox.pack_start( label, True )
-        entry_stoptag = gtk.Entry()
-        entry_stoptag.set_max_length(14)
-        hbox.pack_start (entry_stoptag, True)
+        entry_stoppoint = gtk.Entry()
+        entry_stoppoint.set_max_length(20)
+        hbox.pack_start (entry_stoppoint, True)
         vbox.pack_start(hbox)
 
         help_button = gtk.Button( "_Help" )
@@ -2080,7 +2088,10 @@ shown here in the state they were in at the time of triggering.''' )
 
         hbox = gtk.HBox()
         insert_button = gtk.Button( "_Insert" )
-        insert_button.connect("clicked", self.insert_task, window, entry_match, entry_tag, entry_stoptag, fam_cb )
+        insert_button.connect(
+            "clicked", self.insert_task, window, entry_match,
+            entry_point_string, entry_stoppoint, fam_cb
+        )
         cancel_button = gtk.Button( "_Cancel" )
         cancel_button.connect("clicked", lambda x: window.destroy() )
         hbox.pack_start(insert_button, False)
@@ -2091,24 +2102,26 @@ shown here in the state they were in at the time of triggering.''' )
         window.add( vbox )
         window.show_all()
 
-    def insert_task( self, w, window, entry_match, entry_tag, entry_stoptag, fam_cb ):
+    def insert_task( self, w, window, entry_match, entry_point_string,
+                     entry_stoppoint, fam_cb ):
         match = entry_match.get_text()
-        tag = entry_tag.get_text()
+        point_string = entry_point_string.get_text()
         is_family = fam_cb.get_active()
-        stoptag = entry_stoptag.get_text()
+        stop_point_string = entry_stoppoint.get_text()
 
-        if match == '' or tag == '':
+        if match == '' or point_string == '':
             warning_dialog( "Enter task or family name MATCH expression", self.window ).warn()
             return
 
         window.destroy()
 
         stop = None
-        if stoptag != '':
-            stop = stoptag
+        if stop_point_string != '':
+            stop = stop_point_string
 
         try:
-            result = self.get_pyro( 'command-interface' ).put( 'insert task', match, tag, is_family, stop )
+            result = self.get_pyro( 'command-interface' ).put(
+                'insert task', match, point_string, is_family, stop)
         except Exception, x:
             warning_dialog( x.__str__(), self.window ).warn()
             return
@@ -2161,22 +2174,20 @@ or remove task definitions without restarting the suite."""
         err = []
         out = []
         extra = []
-        for f in logfiles:
-            if f.endswith('.err'):
-                err.append(f)
-            elif f.endswith('.out'):
-                out.append(f)
-            elif re.search( '.*' + task_id + '\.\d+$', f ): # /a/b/c/foo.1.2
-                js = f
+        for logfile in logfiles:
+            if logfile.endswith('/job.err'):
+                err.append(logfile)
+            elif logfile.endswith('/job.out'):
+                out.append(logfile)
+            elif logfile.endswith('/job'):
+                js = logfile
             else:
-                extra.append( f )
+                extra.append( logfile )
 
         # for re-tries this sorts in time order due to filename:
         # (TODO - does this still work, post secs-since-epoch file extensions?)
-        key_func = lambda x: [int(w) if w.isdigit() else w for w in
-                              re.split("(\d+)", x)]
-        err.sort(key=key_func, reverse=True)
-        out.sort(key=key_func, reverse=True)
+        err.sort(key=self._sort_key_func, reverse=True)
+        out.sort(key=self._sort_key_func, reverse=True)
         window.set_size_request(800, 400)
         if choice == 'job script':
             window.set_title( task_id + ": Job Script" )
@@ -2184,7 +2195,7 @@ or remove task definitions without restarting the suite."""
         else:
             logs = out + err + extra
             window.set_title( task_id + ": Log Files" )
-            lv = combo_logviewer( task_id, logs )
+            lv = ComboLogViewer( task_id, logs )
         #print "ADDING to quitters: ", lv
         self.quitters.append( lv )
 
@@ -2201,6 +2212,9 @@ or remove task definitions without restarting the suite."""
 
         window.connect("delete_event", lv.quit_w_e)
         window.show_all()
+
+    def _sort_key_func(self, x):
+        return [int(w) if w.isdigit() else w for w in re.split("(\d+)", x)]
 
     def _set_tooltip( self, widget, tip_text ):
         tooltip = gtk.Tooltips()
@@ -2254,39 +2268,73 @@ it tries to reconnect after increasingly long delays, to reduce network traffic.
 
         self.view_menu.append( gtk.SeparatorMenuItem() )
 
-        key_item = gtk.ImageMenuItem( "Show task state key" )
-        dots = DotMaker( self.theme )
-        img = dots.get_image( "running" )
+        key_item = gtk.ImageMenuItem("State Icon _Key")
+        dots = DotMaker(self.theme, size='small')
+        img = dots.get_image("running")
         key_item.set_image(img)
-        self._set_tooltip( key_item, "Describe what task states the colors represent" )
-        self.view_menu.append( key_item )
-        key_item.connect( 'activate', self.popup_theme_legend )
+        self._set_tooltip(key_item, "Describe what task states the colors represent")
+        self.view_menu.append(key_item)
+        key_item.connect('activate', self.popup_theme_legend)
 
-        theme_item = gtk.ImageMenuItem( 'Theme' )
-        img = gtk.image_new_from_stock(  gtk.STOCK_SELECT_COLOR, gtk.ICON_SIZE_MENU )
+        dot_size_item = gtk.ImageMenuItem('State Icon _Size')
+        img = gtk.image_new_from_stock(
+                gtk.STOCK_ZOOM_FIT, gtk.ICON_SIZE_MENU)
+        dot_size_item.set_image(img)
+        self.view_menu.append(dot_size_item)
+        dot_sizemenu = gtk.Menu()
+        dot_size_item.set_submenu(dot_sizemenu)
+
+        dot_sizes = ['small', 'medium', 'large']
+        dot_size_items = {}
+        self.dot_size = gcfg.get(['dot icon size'])
+        dot_size_items[self.dot_size] = gtk.RadioMenuItem(
+                label='_' + self.dot_size)
+        dot_sizemenu.append(dot_size_items[self.dot_size])
+        self._set_tooltip(
+                dot_size_items[self.dot_size],
+                self.dot_size + " state icon dot size")
+        for dsize in dot_sizes:
+            if dsize == self.dot_size:
+                continue
+            dot_size_items[dsize] = gtk.RadioMenuItem(
+                    group=dot_size_items[self.dot_size], label='_' + dsize)
+            dot_sizemenu.append(dot_size_items[dsize])
+            self._set_tooltip(
+                    dot_size_items[dsize], dsize + " state icon size")
+
+        # set_active then connect, to avoid causing an unnecessary toggle now.
+        dot_size_items[ self.dot_size ].set_active(True)
+        for dot_size in dot_sizes:
+            dot_size_items[dot_size].connect(
+                    'toggled', self.set_dot_size, dot_size)
+
+        theme_item = gtk.ImageMenuItem('State Icon _Theme')
+        img = gtk.image_new_from_stock(
+                gtk.STOCK_SELECT_COLOR, gtk.ICON_SIZE_MENU)
         theme_item.set_image(img)
-        self.view_menu.append( theme_item )
+        self.view_menu.append(theme_item)
         thememenu = gtk.Menu()
         theme_item.set_submenu(thememenu)
 
         theme_items = {}
         theme = "default"
-        theme_items[theme] = gtk.RadioMenuItem( label=theme )
-        thememenu.append( theme_items[theme] )
-        self._set_tooltip( theme_items[theme], theme + " task state theme" )
+        theme_items[theme] = gtk.RadioMenuItem(label='_' + theme)
+        thememenu.append(theme_items[theme])
+        self._set_tooltip(theme_items[theme], theme + " state icon theme")
         theme_items[theme].theme_name = theme
-        for theme in gcfg.get( ['themes'] ):
+        for theme in gcfg.get(['themes']):
             if theme == "default":
                 continue
-            theme_items[theme] = gtk.RadioMenuItem( group=theme_items['default'], label=theme )
-            thememenu.append( theme_items[theme] )
-            self._set_tooltip( theme_items[theme], theme + " task state theme" )
+            theme_items[theme] = gtk.RadioMenuItem(
+                    group=theme_items['default'], label='_' + theme)
+            thememenu.append(theme_items[theme])
+            self._set_tooltip(theme_items[theme], theme + " state icon theme")
             theme_items[theme].theme_name = theme
 
         # set_active then connect, to avoid causing an unnecessary toggle now.
         theme_items[ self.theme_name ].set_active(True)
-        for theme in gcfg.get( ['themes'] ):
-            theme_items[theme].connect( 'toggled', self.set_theme )
+        for theme in gcfg.get(['themes']):
+            theme_items[theme].connect('toggled', self.set_theme)
 
         self.view_menu.append( gtk.SeparatorMenuItem() )
 
@@ -2561,7 +2609,7 @@ it tries to reconnect after increasingly long delays, to reduce network traffic.
 
         doc_menu.append( gtk.SeparatorMenuItem() )
 
-        if sitecfg.get( ['documentation','urls','local index'] ):
+        if GLOBAL_CFG.get( ['documentation','urls','local index'] ):
             cug_www_item = gtk.ImageMenuItem( '(http://) Local Document Index' )
             img = gtk.image_new_from_stock(  gtk.STOCK_JUMP_TO, gtk.ICON_SIZE_MENU )
             cug_www_item.set_image(img)
@@ -2915,24 +2963,24 @@ For more Stop options use the Control menu.""" )
 
     def create_info_bar( self ):
         self.info_bar = InfoBar(
-            self.cfg.host, self.theme,
+            self.cfg.host, self.theme, self.dot_size,
             self._alter_status_toolbar_menu,
             lambda: self.run_suite_log(None, type="err"))
 
     def popup_theme_legend( self, widget=None ):
         """Popup a theme legend window."""
         if self.theme_legend_window is None:
-            self.theme_legend_window = ThemeLegendWindow( self.window,
-                                                          self.theme )
-            self.theme_legend_window.connect( "destroy",
-                                              self.destroy_theme_legend )
+            self.theme_legend_window = ThemeLegendWindow(
+                    self.window, self.theme, self.dot_size)
+            self.theme_legend_window.connect(
+                    "destroy", self.destroy_theme_legend)
         else:
             self.theme_legend_window.present()
 
     def update_theme_legend( self ):
         """Update the theme legend window, if it exists."""
         if self.theme_legend_window is not None:
-            self.theme_legend_window.update( self.theme )
+            self.theme_legend_window.update(self.theme, self.dot_size)
 
     def destroy_theme_legend( self, widget ):
         """Handle a destroy of the theme legend window."""
@@ -3066,4 +3114,3 @@ For more Stop options use the Control menu.""" )
         foo = gcapture_tmpfile( command, self.cfg.cylc_tmpdir, 700, 600 )
         self.gcapture_windows.append(foo)
         foo.run()
-

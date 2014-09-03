@@ -25,8 +25,8 @@ if remrun().execute():
     sys.exit(0)
 
 from cylc.CylcOptionParsers import cop
-from cylc.dbstatecheck import CylcSuiteDBChecker, DBNotFoundError
-from cylc.cfgspec.site import sitecfg
+from cylc.dbstatecheck import CylcSuiteDBChecker, DBNotFoundError, DBOperationError
+from cylc.cfgspec.globalcfg import GLOBAL_CFG
 from cylc.command_polling import poller
 import cylc.flags
 
@@ -57,11 +57,11 @@ class suite_poller( poller ):
                 connected = True
                 # ... but ensure at least one poll after connection:
                 self.n_polls -= 1
-            except DBNotFoundError:
+            except DBOperationError:
+                if self.n_polls >= max_polls:
+                    raise
                 if cylc.flags.verbose:
                     sys.stdout.write('.')
-                if self.n_polls >= max_polls:
-                    break
                 sleep(self.interval)
         if cylc.flags.verbose:
             sys.stdout.write('\n')
@@ -80,13 +80,13 @@ class suite_poller( poller ):
 parser = cop( usage = """cylc suite-state REG [OPTIONS]
 
 Print task states retrieved from a suite database; or (with --task,
---cycle, and --status) poll until a given task reaches a given state.
+--point, and --status) poll until a given task reaches a given state.
 Polling is configurable with --interval and --max-polls; for a one-off
 check use --max-polls=1. The suite database does not need to exist at
 the time polling commences but allocated polls are consumed waiting for
 it (consider max-polls*interval as an overall timeout).
 
-Note for non-cycling tasks --cycle=1 must be provided.
+Note for non-cycling tasks --point=1 must be provided.
 
 For your own suites the database location is determined by your
 site/user config. For other suites, e.g. those owned by others, or
@@ -102,7 +102,11 @@ parser.add_option( "-t", "--task",
         action="store", dest="task", default=None )
 
 parser.add_option( "-c", "--cycle",
-        help="Specify the cycle to check task states for.",
+        help="Deprecated. Specify the cycle to check task states for.",
+        action="store", dest="cycle", default=None )
+
+parser.add_option( "-p", "--point",
+        help="Specify the cycle point to check task states for.",
         action="store", dest="cycle", default=None )
 
 parser.add_option( "-d", "--run-dir",
@@ -130,7 +134,7 @@ suite = args[0]
 # this only runs locally (use of --host or --user results in remote re-invocation).
 run_dir = os.path.expandvars( \
           os.path.expanduser( \
-          options.run_dir or sitecfg.get_host_item( 'run directory' )))
+          options.run_dir or GLOBAL_CFG.get_host_item( 'run directory' )))
 
 spoller = suite_poller( "requested state",
         options.interval, options.max_polls,
@@ -163,4 +167,3 @@ else:
                 task=options.task,
                 cycle=options.cycle,
                 status=options.status))
-

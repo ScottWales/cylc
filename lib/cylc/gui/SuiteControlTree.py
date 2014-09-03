@@ -24,18 +24,20 @@ from gcapture import gcapture_tmpfile
 from util import EntryTempText
 from warning_dialog import warning_dialog, info_dialog
 from cylc.task_state import task_state
-from cylc.TaskID import TaskID
+from cylc.gui.DotMaker import DotMaker
+import cylc.TaskID
 
 class ControlTree(object):
     """
 Text Treeview suite control interface.
     """
-    def __init__(self, cfg, updater, usercfg, info_bar, get_right_click_menu,
+    def __init__(self, cfg, updater, theme, dot_size, info_bar, get_right_click_menu,
                  log_colors, insert_task_popup ):
 
         self.cfg = cfg
         self.updater = updater
-        self.usercfg = usercfg
+        self.theme = theme
+        self.dot_size = dot_size
         self.info_bar = info_bar
         self.get_right_click_menu = get_right_click_menu
         self.log_colors = log_colors
@@ -51,8 +53,10 @@ Text Treeview suite control interface.
 
         self.tfilt = ''
 
-        self.t = TreeUpdater( self.cfg, self.updater, self.ttreeview,
-                              self.ttree_paths, self.info_bar, self.usercfg )
+        self.t = TreeUpdater(
+                self.cfg, self.updater, self.ttreeview, self.ttree_paths,
+                self.info_bar, self.theme, self.dot_size
+        )
         self.t.start()
         return main_box
 
@@ -62,13 +66,13 @@ Text Treeview suite control interface.
         # and matching name against current name filter setting.
         # (state result: sres; name result: nres)
 
-        ctime = model.get_value(iter, 0 )
+        point_string = model.get_value(iter, 0 )
         name = model.get_value(iter, 1)
-        if name is None or ctime is None:
+        if name is None or point_string is None:
             return True
         name = re.sub( r'<.*?>', '', name )
 
-        if ctime == name:
+        if point_string == name:
             # Cycle-time line (not state etc.)
             return True
 
@@ -78,19 +82,15 @@ Text Treeview suite control interface.
             state = re.sub( r'<.*?>', '', state )
         sres = state not in self.tfilter_states
 
-        try:
-            if not self.tfilt:
-                nres = True
-            elif self.tfilt in name:
-                # tfilt is any substring of name
-                nres = True
-            elif re.search( self.tfilt, name ):
-                # full regex match
-                nres = True
-            else:
-                nres = False
-        except:
-            warning_dialog( 'Bad filter regex? ' + self.tfilt ).warn()
+        if not self.tfilt:
+            nres = True
+        elif self.tfilt in name:
+            # tfilt is any substring of name
+            nres = True
+        elif re.search( self.tfilt, name ):
+            # full regex match
+            nres = True
+        else:
             nres = False
 
         if model.iter_has_child( iter ):
@@ -109,15 +109,28 @@ Text Treeview suite control interface.
     def check_tfilter_buttons(self, tb):
         del self.tfilter_states[:]
         for subbox in self.tfilterbox.get_children():
-            for b in subbox.get_children():
-                if not b.get_active():
-                    # sub '_' from button label keyboard mnemonics
-                    self.tfilter_states.append( re.sub('_', '', b.get_label()))
+            for box in subbox.get_children():
+                try:
+                    icon, cb = box.get_children()
+                except ValueError:
+                    # subbox2 has a null entry to line things up.
+                    pass
+                else:
+                    if not cb.get_active():
+                        # sub '_' from button label keyboard mnemonics
+                        self.tfilter_states.append( re.sub('_', '', cb.get_label()))
         self.tmodelfilter.refilter()
 
     def check_filter_entry( self, e ):
-        ftxt = self.filter_entry.get_text()
-        self.tfilt = self.filter_entry.get_text()
+        ftext = self.filter_entry.get_text()
+        try:
+            re.compile(ftext)
+        except re.error as exc:
+            warning_dialog(
+                "Bad filter regex: '%s': error: %s" % (ftext, exc)).warn()
+            self.tfilt = ""
+        else:
+            self.tfilt = ftext
         self.tmodelfilter.refilter()
 
     def toggle_grouping( self, toggle_item ):
@@ -167,7 +180,7 @@ Text Treeview suite control interface.
 
         self.sort_col_num = 0
 
-        self.ttreestore = gtk.TreeStore(str, str, str, str, str, str, str, str, gtk.gdk.Pixbuf )
+        self.ttreestore = gtk.TreeStore(str, str, str, str, str, str, str, str, str, str, gtk.gdk.Pixbuf)
         self.tmodelfilter = self.ttreestore.filter_new()
         self.tmodelfilter.set_visible_func(self.visible_cb)
         self.tmodelsort = gtk.TreeModelSort(self.tmodelfilter)
@@ -178,28 +191,33 @@ Text Treeview suite control interface.
         ts = self.ttreeview.get_selection()
         ts.set_mode( gtk.SELECTION_SINGLE )
 
-        self.ttreeview.connect( 'button_press_event', self.on_treeview_button_pressed )
-        headings = [ None, 'task', 'state', 'message', 'Tsubmit', 'Tstart', 'mean dT', 'ETC' ]
+        self.ttreeview.connect('button_press_event', self.on_treeview_button_pressed)
+        headings = [
+                None, 'task', 'state', 'host', 'Job ID', 'T-submit', 'T-start',
+                'T-finish', 'dT-mean', 'latest message'
+        ]
 
         for n in range(1, len(headings)):
-            # Skip first column (cycle time)
-            cr = gtk.CellRendererText()
-            tvc = gtk.TreeViewColumn( headings[n] )
-            if n == 2:
+            # Skip first column (cycle point)
+            tvc = gtk.TreeViewColumn(headings[n])
+            if n == 1:
                 crp = gtk.CellRendererPixbuf()
-                tvc.pack_start( crp, False )
-                tvc.set_attributes( crp, pixbuf=8 )
-            tvc.pack_start( cr, True )
-            tvc.set_attributes( cr, text=n )
+                tvc.pack_start(crp, False)
+                tvc.set_attributes(crp, pixbuf=10)
+            cr = gtk.CellRendererText()
+            tvc.pack_start(cr, True)
+            if n == 7:
+                tvc.set_attributes(cr, markup=n)
+            else:
+                tvc.set_attributes(cr, text=n)
             tvc.set_resizable(True)
             tvc.set_clickable(True)
-         #   tvc.connect("clicked", self.change_sort_order, n - 1 )
             self.ttreeview.append_column(tvc)
-            tvc.set_sort_column_id( n - 1 )
-            self.tmodelsort.set_sort_func( n - 1, self.sort_column, n - 1 )
+            tvc.set_sort_column_id(n - 1)
+            self.tmodelsort.set_sort_func(n - 1, self.sort_column, n - 1)
         sw = gtk.ScrolledWindow()
-        sw.set_policy( gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC )
-        sw.add( self.ttreeview )
+        sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        sw.add(self.ttreeview)
 
         self.tfilterbox = gtk.VBox()
         subbox1 = gtk.HBox(homogeneous=True)
@@ -209,26 +227,34 @@ Text Treeview suite control interface.
 
         self.tfilter_states = []
 
+        dotm = DotMaker(self.theme, size='small')
         cnt = 0
         for st in task_state.legal:
-            b = gtk.CheckButton( task_state.labels[st] )
+            box = gtk.HBox()
+            icon = dotm.get_image(st)
+            cb = gtk.CheckButton(task_state.labels[st])
+            box.pack_start(icon, expand=False)
+            box.pack_start(cb, expand=False)
             cnt += 1
-            if cnt > len(task_state.legal)/2:
-                subbox2.pack_start(b)
+            if cnt > (len(task_state.legal) + 1)//2:
+                subbox2.pack_start(box, expand=False, fill=True)
             else:
-                subbox1.pack_start(b)
+                subbox1.pack_start(box, expand=False, fill=True)
             if st in self.tfilter_states:
-                b.set_active(False)
+                cb.set_active(False)
             else:
-                b.set_active(True)
-            b.connect('toggled', self.check_tfilter_buttons)
+                cb.set_active(True)
+            cb.connect('toggled', self.check_tfilter_buttons)
+        
+        if cnt % 2 != 0:
+            # subbox2 needs another entry to line things up.
+            subbox2.pack_start(gtk.HBox(), expand=False, fill=True)
 
-        ahbox = gtk.HBox()
-        ahbox.pack_start( self.tfilterbox, True)
-
+        filter_hbox = gtk.HBox()
+        filter_hbox.pack_start(self.tfilterbox, True, True, 10)
         vbox = gtk.VBox()
-        vbox.pack_start( sw, True )
-        vbox.pack_end( ahbox, False )
+        vbox.pack_start(sw, True)
+        vbox.pack_end(filter_hbox, False)
 
         return vbox
 
@@ -254,13 +280,13 @@ Text Treeview suite control interface.
 
         selection = treeview.get_selection()
         treemodel, iter = selection.get_selected()
-        ctime = treemodel.get_value( iter, 0 )
+        point_string = treemodel.get_value( iter, 0 )
         name = treemodel.get_value( iter, 1 )
-        if ctime == name:
-            # must have clicked on the top level ctime
+        if point_string == name:
+            # must have clicked on the top level point_string
             return
 
-        task_id = name + TaskID.DELIM + ctime
+        task_id = cylc.TaskID.get( name, point_string )
 
         is_fam = (name in self.t.descendants)
 
@@ -287,14 +313,15 @@ Text Treeview suite control interface.
 
     def sort_column( self, model, iter1, iter2, col_num ):
         cols = self.ttreeview.get_columns()
-        ctime1 = model.get_value( iter1 , 0 )
-        ctime2 = model.get_value( iter2, 0 )
-        if ctime1 != ctime2:
+        point_string1 = model.get_value( iter1 , 0 )
+        point_string2 = model.get_value( iter2, 0 )
+        if point_string1 != point_string2:
+            # TODO ISO: worth a proper comparison here?
             if cols[col_num].get_sort_order() == gtk.SORT_DESCENDING:
-                return cmp(ctime2, ctime1)
-            return cmp(ctime1, ctime2)
+                return cmp(point_string2, point_string1)
+            return cmp(point_string1, point_string2)
 
-        # Columns do not include the cycle time (0th col), so add 1.
+        # Columns do not include the cycle point (0th col), so add 1.
         prop1 = model.get_value( iter1, col_num + 1 )
         prop2 = model.get_value( iter2, col_num + 1 )
         return cmp( prop1, prop2 )

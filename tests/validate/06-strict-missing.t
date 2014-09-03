@@ -15,12 +15,12 @@
 #C: You should have received a copy of the GNU General Public License
 #C: along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #-------------------------------------------------------------------------------
-#C: Test strict validation of suite for tasks without runtime entries
+# Test strict validation of suite for tasks without runtime entries
 . $(dirname $0)/test_header
 #-------------------------------------------------------------------------------
 set_test_number 1
 #-------------------------------------------------------------------------------
-install_suite $TEST_NAME_BASE strict-missing
+install_suite $TEST_NAME_BASE $TEST_NAME_BASE
 #-------------------------------------------------------------------------------
 TEST_NAME=$TEST_NAME_BASE-val
 run_fail $TEST_NAME cylc validate --strict $SUITE_NAME

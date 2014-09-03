@@ -32,15 +32,17 @@ SITE_FILE = os.path.join( os.environ['CYLC_DIR'], 'conf', 'gcylcrc', 'themes.rc'
 USER_FILE = os.path.join( os.environ['HOME'], '.cylc', 'gcylc.rc' )
 
 SPEC = {
-    'initial views' : vdr( vtype='string_list', default=["text"] ),
+    'initial views'   : vdr( vtype='string_list', default=["text"] ),
     'ungrouped views' : vdr( vtype='string_list', default=[] ),
-    'use theme'     : vdr( vtype='string', default="default" ),
+    'use theme'       : vdr( vtype='string', default="default" ),
+    'dot icon size'   : vdr( vtype='string', default="medium",
+                             options=["small","medium","large"]),
+    'sort by definition order' : vdr( vtype='boolean', default=True ), 
     'themes' : {
         '__MANY__' : {
             'inherit'       : vdr( vtype='string', default="default" ),
             'defaults'      : vdr( vtype='string_list' ),
             'waiting'       : vdr( vtype='string_list' ),
-            'runahead'      : vdr( vtype='string_list' ),
             'held'          : vdr( vtype='string_list' ),
             'queued'        : vdr( vtype='string_list' ),
             'ready'         : vdr( vtype='string_list' ),
@@ -219,4 +221,3 @@ if not gcfg:
     gcfg.check()
     # add spec defaults and do theme inheritance
     gcfg.transform()
-

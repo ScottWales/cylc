@@ -39,7 +39,7 @@ usage() {
     echo ""
     echo "Arguments:"
     echo "  REG         - Registered suite name."
-    echo "  TASK        - Task ID (NAME.TAG)"
+    echo "  TASK        - Task ID (NAME.CYCLE_POINT)"
 }
 
 for arg in $@; do
@@ -56,4 +56,3 @@ if [[ -z $JOBSCRIPT ]]; then
 fi
 echo "Task Job Script Generated: $JOBSCRIPT" >&2 # (only send script contents to stdout)
 cat $JOBSCRIPT
-

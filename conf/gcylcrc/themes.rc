@@ -3,7 +3,7 @@
 
 [themes]
     [[default]]
-        # Default theme rational:
+        # Default theme rationale:
         # * States representing something that happened external to cylc
         # are solid; those representing a task proxy states purely
         # internal to cylc are hollow. Thus pre-submitted states, and
@@ -18,11 +18,9 @@
         # * The 'succeeded' state is uninteresting, hence grey.
         # * The 'retry' states are hollow (pre-running) orange (almost red)
         #   as a failure has occurred but we're doing something about it.
-        # * The 'waiting' state is light blue; runahead is a temporary
-        #   more interesting type of waiting, hence darker blue.
+        # * The 'waiting' state is light blue.
         defaults  = "color=#bbbbbb", "style=unfilled", "fontcolor=black"
         waiting   = "color=#88c6ff"
-        runahead  = "color=#397fac"
         held      = "color=#fe83ff"
         queued    = "color=#dcd901"
         ready     = "color=#a08f49"
@@ -41,18 +39,17 @@
 
     [[high-contrast]]
         defaults  = "color=#bbbbbb", "style=filled", "fontcolor=white"
-        waiting   = "color=#008eb1"
-        runahead  = "color=#0808a2"
+        waiting   = "color=#008ed3"
         held      = "color=#fc00ff"
-        queued    = "color=#c6b542", "fontcolor=black"
-        ready     = "color=#7c6300"
+        queued    = "color=#e6c522", "fontcolor=black"
+        ready     = "color=#9c8320"
         submitted = "color=#76a200", "fontcolor=black"
-        submit-failed = "color=#d01d53"
-        running   = "color=#009431"
+        submit-failed = "color=#ff6f00"
+        running   = "color=#00ce27"
         succeeded = "color=#555454"
-        failed    = "color=#ff0000"
-        retrying  = "color=#ff6000"
-        submit-retrying  = "color=#fa6000"
+        failed    = "color=#ff0035"
+        retrying  = "color=#ff6282"
+        submit-retrying  = "color=#ffaf6f"
 
     [[color-blind]]
          # Ten colors that are apparently distinguishable by people with
@@ -69,8 +66,6 @@
         succeeded = "color=#cccccc" # grey
         failed    = "color=#ff3333" # red
         held      = "color=#9900cc" # purple
-        runahead  = "color=#cc9999" # dusky pink
         retrying = "color=#009999" # turquoise
         submit-retrying = "color=#007777" # turquoise2
         # (10th color: black)
-

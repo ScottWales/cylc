@@ -15,7 +15,7 @@
 #C: You should have received a copy of the GNU General Public License
 #C: along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #-------------------------------------------------------------------------------
-#C: jinja2 command line variables test
+# jinja2 command line variables test
 . $(dirname $0)/test_header
 #-------------------------------------------------------------------------------
 set_test_number 3
@@ -33,4 +33,3 @@ suite_run_ok $TEST_NAME cylc run --reference-test \
     --set-file=$TEST_DIR/$SUITE_NAME/vars.txt $SUITE_NAME
 #-------------------------------------------------------------------------------
 purge_suite $SUITE_NAME
-

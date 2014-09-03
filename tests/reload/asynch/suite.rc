@@ -9,9 +9,10 @@
         graph = "asynch"
         [[[0, 6]]]
             graph = "asynch & c[T-6] => a => b => c"
+        [[[18 ]]]
+            graph = "c"
 [runtime]
     [[a,c,asynch]]
         command scripting = "true"
     [[b]]
         command scripting = "cylc reload $CYLC_SUITE_REG_NAME -f; sleep 5"
-

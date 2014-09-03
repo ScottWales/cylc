@@ -18,71 +18,104 @@
 
 import errno
 import os
-from cfgspec.site import sitecfg
-from wallclock import now
+import time
+import logging
+from cylc.cfgspec.globalcfg import GLOBAL_CFG
+from wallclock import now, get_current_time_string
 
 class dumper( object ):
 
     BASE_NAME = 'state'
 
-    def __init__( self, suite, run_mode='live', ict=None, stop_tag=None ):
+    def __init__( self, suite, run_mode='live', ict=None, stop_point=None ):
         self.run_mode = run_mode
-        self.set_cts(ict, stop_tag)
-        self.dir_name = sitecfg.get_derived_host_item( suite,
+        self.set_cts(ict, stop_point)
+        self.dir_name = GLOBAL_CFG.get_derived_host_item( suite,
                                                     'suite state directory' )
         self.file_name = os.path.join( self.dir_name, self.BASE_NAME )
-        self.arch_len = sitecfg.get( [ 'state dump rolling archive length' ] )
+        self.arch_len = GLOBAL_CFG.get( [ 'state dump rolling archive length' ] )
         if not self.arch_len or int(self.arch_len) <= 1:
             self.arch_len = 1
         self.arch_files = []
         self.pool = None
         self.wireless = None
+        self.log = logging.getLogger('main')
 
     def set_cts( self, ict, fct ):
-        self.ict = ict
-        self.stop_tag = fct
+        self.ict_string = str(ict)
+        self.stop_string = str(fct)
 
         self.cts_str = ""
-        if self.ict:
-            self.cts_str += 'initial cycle : ' + self.ict + '\n'
+        if self.ict_string:
+            self.cts_str += 'initial cycle : ' + self.ict_string + '\n'
         else:
             self.cts_str += 'initial cycle : (none)\n'
 
-        if self.stop_tag:
-            self.cts_str += 'final cycle : ' + self.stop_tag + '\n'
+        if self.stop_string:
+            self.cts_str += 'final cycle : ' + self.stop_string + '\n'
         else:
             self.cts_str += 'final cycle : (none)\n'
 
     def dump( self, tasks=None, wireless=None ):
         """Dump suite states to disk. Return state file basename on success."""
 
-        base_name = self.BASE_NAME + "." + now().strftime("%Y%m%dT%H%M%S.%fZ")
-        handle = open(os.path.join(self.dir_name, base_name), "wb")
-
-        
-        handle.write( 'run mode : ' + self.run_mode + '\n' )
-        handle.write( 'time : ' + now().strftime( "%Y:%m:%d:%H:%M:%S") + '\n' )
-
-        handle.write(self.cts_str)
-
         if wireless is None:
-            wireless = self.wireless
-        if wireless is not None:
-            wireless.dump(handle)
+            wireless = self.pool.wireless
 
-        handle.write( 'Begin task states\n' )
+        base_name = self.BASE_NAME + "." + get_current_time_string(
+            override_use_utc=True, use_basic_format=True,
+            display_sub_seconds=True
+        )
+        file_name = os.path.join(self.dir_name, base_name)
 
-        if tasks is None and self.pool is not None:
-            tasks = self.pool.get_tasks()
-        if tasks is not None:
-            for itask in sorted(tasks, key=lambda t: t.id):
-                # TODO - CHECK THIS STILL WORKS
-                itask.dump_class_vars( handle )
-                # task instance variables
-                itask.dump_state( handle )
+        # write the state dump file, retrying several times in case of:
+        # (a) log rolling error when cylc-run contents have been deleted,
+        # (b) "[Errno 9] bad file descriptor" at BoM - see github #926. 
+        max_attempts = 5
+        n_attempt = 1
+        while True:
+            try:
+                handle = open(file_name, "wb")
 
-        os.fsync(handle.fileno())
-        handle.close()
+                handle.write('run mode : %s\n' % self.run_mode)
+                handle.write('time : %s (%d)\n' % (
+                   get_current_time_string(), time.time()))
+
+                handle.write(self.cts_str)
+
+                if wireless is not None:
+                    wireless.dump(handle)
+
+                handle.write('Begin task states\n')
+
+                if tasks is None and self.pool is not None:
+                    tasks = self.pool.get_tasks( all=True )
+                if tasks is not None:
+                    for itask in sorted(tasks, key=lambda t: t.id):
+                        itask.dump_class_vars( handle )
+                        itask.dump_state( handle )
+
+                # To generate "OSError [Errno 9] bad file descriptor",
+                # close the file with os.close() before calling fsync():
+                ## os.close( handle.fileno() )
+
+                os.fsync( handle.fileno() )
+                handle.close()
+            except (IOError, OSError) as exc:
+                if not exc.filename:
+                    exc.filename = file_name
+                self.log.warning( 'State dumping failed, #' + str(n_attempt) + ' ' + str(exc) )
+                if n_attempt >= max_attempts:
+                    raise exc
+                n_attempt += 1
+                try:
+                    handle.close()
+                except Exception as exc:
+                    self.log.warning('State file handle closing failed: %s' %
+                                     exc)
+                time.sleep(0.2)
+            else:
+                break
 
         # Point "state" symbolic link to new dated state dump
         try:
@@ -91,7 +124,7 @@ class dumper( object ):
             if x.errno != errno.ENOENT:
                 raise
         os.symlink(base_name, self.file_name)
-        self.arch_files.append(handle.name)
+        self.arch_files.append(file_name)
         # Remove state dump older than archive length
         while len(self.arch_files) > self.arch_len:
             try:

@@ -22,19 +22,21 @@ import gobject
 from DotUpdater import DotUpdater
 from gcapture import gcapture_tmpfile
 from cylc import cylc_pyro_client
-from cylc.TaskID import TaskID
+import cylc.TaskID
 from util import EntryTempText
+from warning_dialog import warning_dialog
 
 class ControlLED(object):
     """
 LED suite control interface.
     """
-    def __init__(self, cfg, updater, usercfg, info_bar, get_right_click_menu,
+    def __init__(self, cfg, updater, theme, dot_size, info_bar, get_right_click_menu,
                  log_colors, insert_task_popup):
 
         self.cfg = cfg
         self.updater = updater
-        self.usercfg = usercfg
+        self.theme = theme
+        self.dot_size = dot_size
         self.info_bar = info_bar
         self.get_right_click_menu = get_right_click_menu
         self.log_colors = log_colors
@@ -57,8 +59,10 @@ LED suite control interface.
 
         main_box.pack_start( sw, expand=True, fill=True )
 
-        self.t = DotUpdater( self.cfg, self.updater, treeview,
-                             self.info_bar, self.usercfg )
+        self.t = DotUpdater(
+                self.cfg, self.updater, treeview, self.info_bar, self.theme,
+                self.dot_size
+        )
         self.t.start()
 
         return main_box
@@ -86,14 +90,15 @@ LED suite control interface.
             return False
 
         if self.t.is_transposed:
-            ctime = self.t.led_headings[column_index]
+            point_string = self.t.led_headings[column_index]
             name = treeview.get_model().get_value( r_iter, 0 )
         else:
             name = self.t.led_headings[column_index]
-            ctime_column = treeview.get_model().get_n_columns() - 1
-            ctime = treeview.get_model().get_value( r_iter, ctime_column )
+            point_string_column = treeview.get_model().get_n_columns() - 1
+            point_string = treeview.get_model().get_value(
+                r_iter, point_string_column )
 
-        task_id = name + TaskID.DELIM + ctime
+        task_id = cylc.TaskID.get( name, point_string )
 
         is_fam = (name in self.t.descendants)
 
@@ -121,6 +126,13 @@ LED suite control interface.
         transpose_menu_item.connect( 'toggled', self.toggle_transpose )
         transpose_menu_item.show()
 
+        if self.cfg.use_defn_order:
+            defn_order_menu_item = gtk.CheckMenuItem( 'Toggle _Definition Order' )
+            defn_order_menu_item.set_active( self.t.defn_order_on )
+            menu.append( defn_order_menu_item )
+            defn_order_menu_item.connect( 'toggled', self.toggle_defn_order )
+            defn_order_menu_item.show()
+
         menu.popup( None, None, None, event.button, event.time )
 
         # TODO - popup menus are not automatically destroyed and can be
@@ -131,8 +143,15 @@ LED suite control interface.
         return True
 
     def check_filter_entry( self, e ):
-        ftxt = self.filter_entry.get_text()
-        self.t.filter = self.filter_entry.get_text()
+        ftext = self.filter_entry.get_text()
+        try:
+            re.compile(ftext)
+        except re.error as exc:
+            warning_dialog(
+                'Bad filter regex: %s: error: %s' % (ftext, exc)).warn()
+            self.t.filter = ""
+        else:
+            self.t.filter = ftext
         self.t.action_required = True
 
     def toggle_grouping( self, toggle_item ):
@@ -180,6 +199,17 @@ LED suite control interface.
         self.t.action_required = True
         return False
 
+    def toggle_defn_order( self, toggle_item ):
+        """Toggle definition vs alphabetic ordering of namespaces"""
+        defn_order_on = toggle_item.get_active()
+        if defn_order_on == self.t.defn_order_on:
+            return False
+        self.t.defn_order_on = defn_order_on
+        if toggle_item != self.defn_order_menu_item:
+            self.defn_order_menu_item.set_active( defn_order_on )
+        self.t.action_required = True
+        return False
+
     def stop(self):
         self.t.quit = True
 
@@ -212,6 +242,13 @@ LED suite control interface.
         self.transpose_menu_item.set_active( self.t.should_transpose_view )
         items.append( self.transpose_menu_item )
         self.transpose_menu_item.connect( 'toggled', self.toggle_transpose )
+
+        if self.cfg.use_defn_order:
+            self.defn_order_menu_item = gtk.CheckMenuItem( 'Toggle _Definition Order' )
+            self.defn_order_menu_item.set_active( self.t.defn_order_on )
+            items.append( self.defn_order_menu_item )
+            self.defn_order_menu_item.connect( 'toggled', self.toggle_defn_order )
+ 
         return items
 
     def get_toolitems( self ):

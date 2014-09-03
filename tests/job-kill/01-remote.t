@@ -15,7 +15,7 @@
 #C: You should have received a copy of the GNU General Public License
 #C: along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #-------------------------------------------------------------------------------
-#C: Test killing of jobs on a remote host.
+# Test killing of jobs on a remote host.
 . $(dirname $0)/test_header
 #-------------------------------------------------------------------------------
 export CYLC_TEST_HOST=$(cylc get-global-config -i '[test battery]remote host')
@@ -40,7 +40,7 @@ suite_run_ok $TEST_NAME cylc run --reference-test --debug $SUITE_NAME
 #-------------------------------------------------------------------------------
 TEST_NAME=$TEST_NAME_BASE-ps
 run_fail $TEST_NAME \
-    $SSH $CYLC_TEST_HOST "ps \$(cat cylc-run/$SUITE_NAME/work/t*)"
+    $SSH $CYLC_TEST_HOST "ps \$(cat cylc-run/$SUITE_NAME/work/*/t*/file)"
 #-------------------------------------------------------------------------------
 $SSH $CYLC_TEST_HOST \
     "rm -rf .cylc/$SUITE_NAME cylc-run/$SUITE_NAME"

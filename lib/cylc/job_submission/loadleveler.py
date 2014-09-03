@@ -17,11 +17,11 @@
 #C: along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import re
-from job_submit import job_submit
-from cylc.TaskID import TaskID
+from job_submit import JobSubmit
+import cylc.TaskID
 from subprocess import check_call, Popen, PIPE
 
-class loadleveler( job_submit ):
+class loadleveler( JobSubmit ):
 
     "Loadleveler job submission"
 
@@ -36,7 +36,7 @@ class loadleveler( job_submit ):
         self.jobconfig['directive final'] = "# @ queue"
 
         defaults = {}
-        defaults[ 'job_name' ] = self.suite + TaskID.DELIM + self.task_id
+        defaults[ 'job_name' ] = self.suite + cylc.TaskID.DELIM + self.task_id
         # Replace literal '$HOME' in stdout and stderr file paths with ''
         # because environment variables are not interpreted in directives.
         # (For remote tasks the local home directory path is replaced
@@ -71,7 +71,7 @@ class loadleveler( job_submit ):
         if self.jobconfig['directives'].get('restart') == 'yes':
             self.jobconfig['job vacation signal'] = 'USR1'
 
-    def construct_jobfile_submission_command( self ):
+    def construct_job_submit_command( self ):
         """
         Construct a command to submit this job to run.
         """

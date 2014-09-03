@@ -21,15 +21,18 @@ from time import sleep
 import os
 import shutil
 import sqlite3
+import sys
 from threading import Thread
 from Queue import Queue
 from mkdir_p import mkdir_p
+from cylc.wallclock import get_current_time_string
+
 
 class UpdateObject(object):
     """UpdateObject for using in tasks"""
     def __init__(self, table, name, cycle, **kwargs):
         """Update a row in a table."""
-        kwargs["time_updated"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        kwargs["time_updated"] = get_current_time_string()
         s_fmt = "UPDATE %(table)s SET %(cols)s WHERE name==? AND cycle==?"
         cols = ""
         args = []
@@ -46,38 +49,41 @@ class UpdateObject(object):
         self.args = args
         self.to_run = True
 
+
 class RecordBroadcastObject(object):
     """RecordBroadcastObject for using in broadcast settings dumps"""
-    def __init__(self, timestamp, dumpstring):
+    def __init__(self, time_string, dump_string):
         """Records a dumped string in the broadcast table"""
         self.s_fmt = "INSERT INTO broadcast_settings VALUES(?, ?)"
-        self.args = [timestamp, dumpstring]
+        self.args = [time_string, dump_string]
         self.to_run = True
+
 
 class RecordEventObject(object):
     """RecordEventObject for using in tasks"""
     def __init__(self, name, cycle, submit_num, event=None, message=None, misc=None):
         """Records an event in the table"""
         self.s_fmt = "INSERT INTO task_events VALUES(?, ?, ?, ?, ?, ?, ?)"
-        self.args = [name, cycle, datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+        self.args = [name, cycle, get_current_time_string(),
                      submit_num, event, message, misc]
         self.to_run = True
 
 
 class RecordStateObject(object):
     """RecordStateObject for using in tasks"""
-    def __init__(self, name, cycle, time_created=datetime.now(), time_updated=None,
-                     submit_num=None, is_manual_submit=None, try_num=None,
-                     host=None, submit_method=None, submit_method_id=None,
-                     status=None):
+    def __init__(self, name, cycle, time_created_string=None,
+                 time_updated_string=None, submit_num=None,
+                 is_manual_submit=None, try_num=None, host=None,
+                 submit_method=None, submit_method_id=None, status=None):
         """Insert a new row into the states table"""
+        if time_created_string is None:
+            time_created_string = get_current_time_string()
         self.s_fmt = "INSERT INTO task_states VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-        if time_updated is not None:
-            time_updated = time_updated.strftime("%Y-%m-%dT%H:%M:%S")
-        self.args = [name, cycle, time_created.strftime("%Y-%m-%dT%H:%M:%S"),
-                     time_updated, submit_num, is_manual_submit, try_num, host,
+        self.args = [name, cycle, time_created_string, time_updated_string,
+                     submit_num, is_manual_submit, try_num, host,
                      submit_method, submit_method_id, status]
         self.to_run = True
+
 
 class BulkDBOperObject(object):
     """BulkDBOperObject for grouping together related operations"""
@@ -90,6 +96,7 @@ class BulkDBOperObject(object):
             raise Exception( "ERROR: cannot combine different types of database operation" )
         self.args.append(db_object.args)
 
+
 class ThreadedCursor(Thread):
     def __init__(self, db):
         super(ThreadedCursor, self).__init__()
@@ -98,8 +105,13 @@ class ThreadedCursor(Thread):
         self.reqs=Queue()
         self.start()
         self.exception = None
+        self.integrity_msg = ("Database Integrity Error: %s:\n"+
+                              "\tConverting INSERT to INSERT OR REPLACE for:\n"+
+                              "\trequest: %s\n\targs: %s")
+        self.generic_err_msg = ("%s:%s occurred while trying to run:\n"+
+                              "\trequest: %s\n\targs: %s")
     def run(self):
-        cnx = sqlite3.connect(self.db)
+        cnx = sqlite3.connect(self.db, timeout=10.0)
         cursor = cnx.cursor()
         counter = 1
         while True:
@@ -131,11 +143,22 @@ class ThreadedCursor(Thread):
                         res.put('--no more--')
                     cnx.commit()
                     break
+                except sqlite3.IntegrityError as e:
+                    # Capture integrity errors, refactor request and report to stderr
+                    attempt += 1
+                    if req.startswith("INSERT INTO"):
+                        print >> sys.stderr, self.integrity_msg%(str(e),req,arg)
+                        req = req.replace("INSERT INTO", "INSERT OR REPLACE INTO", 1)
+                    if attempt >= self.max_commit_attempts:
+                        self.exception = e
+                        raise Exception(self.generic_err_msg%(type(e),str(e),req,arg))
+                    sleep(1)
                 except Exception as e:
+                    # Capture all other integrity errors and raise more helpful message
                     attempt += 1
                     if attempt >= self.max_commit_attempts:
                         self.exception = e
-                        raise e
+                        raise Exception(self.generic_err_msg%(type(e),str(e),req,arg))
                     sleep(1)
             counter += 1
         cnx.commit()
@@ -163,7 +186,7 @@ class CylcRuntimeDAO(object):
     TABLES = {
             TASK_EVENTS: [                      # each task event gets a row
                     "name TEXT",
-                    "cycle TEXT",               # current cycle time of the task
+                    "cycle TEXT",               # current cycle point of the task
                     "time INTEGER",             # actual time
                     "submit_num INTEGER",
                     "event TEXT",
@@ -242,44 +265,46 @@ class CylcRuntimeDAO(object):
         return
 
     def get_task_submit_num(self, name, cycle):
-        s_fmt = "SELECT COUNT(*) FROM task_events WHERE name==? AND cycle==? AND event==?"
-        args = [name, cycle, "submitting now"]
-        count = self.c.select(s_fmt, args).next()[0]
-        submit_num = count + 1 #submission numbers should start at 0
-        return submit_num
+        s_fmt = ("SELECT COUNT(*) FROM task_events" +
+                 " WHERE name==? AND cycle==? AND event==?")
+        args = [name, str(cycle), "incrementing submit number"]
+        count = 0
+        for row in self.c.select(s_fmt, args):
+            count = row[0]  # submission numbers should start at 0
+            break
+        return count + 1
 
     def get_task_current_submit_num(self, name, cycle):
-        s_fmt = "SELECT COUNT(*) FROM task_events WHERE name==? AND cycle==? AND event==?"
-        args = [name, cycle, "submitting now"]
-        count = self.c.select(s_fmt, args).next()[0]
-        return count
+        s_fmt = ("SELECT COUNT(*) FROM task_events" +
+                 " WHERE name==? AND cycle==? AND event==?")
+        args = [name, str(cycle), "incrementing submit number"]
+        for row in self.c.select(s_fmt, args):
+            return row[0]
 
     def get_task_state_exists(self, name, cycle):
         s_fmt = "SELECT COUNT(*) FROM task_states WHERE name==? AND cycle==?"
-        args = [name, cycle]
-        count = self.c.select(s_fmt, args).next()[0]
-        return count > 0
+        for row in self.c.select(s_fmt, [name, str(cycle)]):
+            return row[0] > 0
+        return False
 
     def get_task_host(self, name, cycle):
         """Return the host name for task "name" at a given cycle."""
         s_fmt = r"SELECT host FROM task_states WHERE name==? AND cycle==?"
-        for row in self.c.select(s_fmt, [name, cycle]):
+        for row in self.c.select(s_fmt, [name, str(cycle)]):
             return row[0]
 
     def get_task_location(self, name, cycle):
         s_fmt = """SELECT misc FROM task_events WHERE name==? AND cycle==?
                    AND event=="submission succeeded" AND misc!=""
                    ORDER BY submit_num DESC LIMIT 1"""
-        args = [name, cycle]
-        res = self.c.select(s_fmt, args).next()
-        return res
+        for row in self.c.select(s_fmt, [name, str(cycle)]):
+            return row
 
-    def get_task_sumbit_method_id_and_try(self, name, cycle):
+    def get_task_submit_method_id_and_try(self, name, cycle):
         s_fmt = """SELECT submit_method_id, try_num FROM task_states WHERE name==? AND cycle==?
                    ORDER BY submit_num DESC LIMIT 1"""
-        args = [name, cycle]
-        res = self.c.select(s_fmt, args).next()
-        return res
+        for row in self.c.select(s_fmt, [name, str(cycle)]):
+            return row
 
     def run_db_op(self, db_oper):
         if isinstance(db_oper, BulkDBOperObject):
@@ -287,3 +312,19 @@ class CylcRuntimeDAO(object):
         else:
             self.c.execute(db_oper.s_fmt, db_oper.args)
 
+    def get_restart_info(self, cycle):
+        """Get all the task names and submit count for a particular cycle"""
+        s_fmt = """SELECT name FROM task_states WHERE cycle ==?"""
+        args = [cycle]
+        res = {}
+        for row in self.c.select(s_fmt, args):
+            res[row[0]] = 0
+        
+        s_fmt = """SELECT name, count(*) FROM task_events WHERE cycle ==? AND
+                   event ==? GROUP BY name"""
+        args = [cycle, "incrementing submit number"]
+        
+        for name, count in self.c.select(s_fmt, args):
+            res[name] = count
+
+        return res

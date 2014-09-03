@@ -33,7 +33,7 @@ import warnings
 #import pygtk
 #pygtk.require('2.0')
 
-from cylc.cfgspec.site import sitecfg
+from cylc.cfgspec.globalcfg import GLOBAL_CFG
 from cylc.cfgspec.gcylc import gcfg
 from cylc.gui.gsummary import (get_host_suites, get_status_tasks,
                                get_summary_menu, launch_gcylc,
@@ -56,7 +56,7 @@ class SummaryPanelApplet(object):
         setup_icons()
         if not hosts:
             try:
-                hosts = sitecfg.get( ["suite host scanning","hosts"] )
+                hosts = GLOBAL_CFG.get( ["suite host scanning","hosts"] )
             except KeyError:
                 hosts = ["localhost"]
         self.is_compact = is_compact
@@ -281,9 +281,12 @@ class SummaryPanelAppletUpdater(BaseSummaryTimeoutUpdater):
                 image.show()
                 tip_hbox.pack_start(image, expand=False, fill=False)
             states_text = ", ".join(state_info)
-            suite_summary = status
+            if status is None:
+                suite_summary = "?"
+            else:
+                suite_summary = status
             if is_stopped:
-                suite_summary = "stopped with " + status
+                suite_summary = "stopped with " + suite_summary
             tip_label = gtk.Label(text_format % (suite, suite_summary, host))
             tip_label.show()
             tip_hbox.pack_start(tip_label, expand=False, fill=False,

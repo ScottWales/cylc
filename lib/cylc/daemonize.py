@@ -37,15 +37,15 @@ def daemonize( suite, port ):
             print " + Name:", suite
             print " + PID: ", pid
             print " + Port:", port
-            print " + Logs: %s/(log|out|err)" % os.path.dirname( sout.get_path() )
+            print " + Logs: %s/{log,out,err}" % os.path.dirname( sout.get_path() )
             print
             print "To see if this suite is still running:"
             print " * cylc scan"
             print " * cylc ping -v", suite
             print " * ps -fu $USER | grep 'cylc-run .*", suite + "'"
             print
-            print "To run in non-daemon mode use --debug."
-            print "For more information type 'cylc --help'."
+            print "To run in non-daemon mode use --no-detach or --debug."
+            print "For more information see 'cylc --help' and the User Guide."
             print
             sys.exit(0)
     except OSError, e:

@@ -1,7 +1,8 @@
 [scheduling]
+    initial cycle time = 2013010100
+    final cycle time = 2013010100
     [[special tasks]]
         start-up = foo
     [[dependencies]]
         [[[0]]]
             graph = "foo => bar"
-
