@@ -33,8 +33,7 @@ before_install:
     - cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
     - ssh-keyscan -t rsa localhost >> ~/.ssh/known_hosts
 
-    # Clear bashrc
-    - cat ~/.bashrc
+    # Clear bashrc - the default does nothing if not in an interactive shell
     - echo > ~/.bashrc
 
     # Setup virtualenv (using system packages for pygtk)
@@ -44,9 +43,8 @@ before_install:
     # Make sure Cylc is in PATH when running jobs
     - echo "export PATH=$PWD/bin:\$PATH" >> ~/.bashrc
 
-    - cat ~/.bashrc
+    # Load our new environment
     - source ~/.bashrc
-    - ls -la ~
 
 
 # These commands are run before the test
@@ -58,9 +56,7 @@ install:
 
 # Run tests
 script: 
-    - which python
-    - ssh localhost cylc help
-    - cylc test-battery tests/triggering/01-or-conditional.t -- -j 4
+    - cylc test-battery -- -j 4
 
 # Check output
 after_script:
