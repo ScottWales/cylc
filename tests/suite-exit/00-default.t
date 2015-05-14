@@ -2,7 +2,7 @@
 # vim:filetype=sh
 # Copyright (C) 2008-2015 NIWA
 # Copyright (C) 2015 ARC Centre of Excellence for Climate Systems Science
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
