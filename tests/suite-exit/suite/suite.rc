@@ -1,9 +1,7 @@
 #!Jinja2
 
 [cylc]
-    {% if EXIT_WHEN is defined %}
-        exit when = {{ EXIT_WHEN }}
-    {% endif %}
+    shutdown = {{ environ['EXIT_WHEN'] }}
     [[event hooks]]
         timeout = PT5S
         abort on timeout = true

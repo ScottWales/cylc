@@ -625,6 +625,13 @@ class TaskPool(object):
                           str(self.stop_point))
                 itask.reset_state_held()
 
+    def no_assigned_tasks(self):
+        "Returns true if no more jobs can run"
+        for itask in self.get_tasks():
+            if itask.state.is_currently('ready', 'running', 'submitted'):
+                return False
+        return True
+
     def no_active_tasks(self):
         for itask in self.get_tasks():
             if itask.state.is_currently('running', 'submitted'):

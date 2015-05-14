@@ -23,16 +23,16 @@ set_test_number 9
 
 # Hold when all tasks are complete for manual review
 
-export EXIT_WHEN='hold'
+export EXIT_WHEN='hold always'
 
 export A_SCRIPT='true'
 export B_SCRIPT='true'
-suite_should_hold
+suite_should_error 'suite timed out'
 
 export A_SCRIPT='true'
 export B_SCRIPT='false'
-suite_should_hold
+suite_should_error 'suite timed out'
 
 export A_SCRIPT='false'
 export B_SCRIPT='true'
-suite_should_hold
+suite_should_error 'suite timed out'

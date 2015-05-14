@@ -23,7 +23,7 @@ set_test_number 8
 
 # Default behaviour is 'hold on error'
 
-unset EXIT_WHEN
+export EXIT_WHEN='hold on task error'
 
 export A_SCRIPT='true'
 export B_SCRIPT='true'
@@ -31,8 +31,8 @@ suite_should_succeed
 
 export A_SCRIPT='true'
 export B_SCRIPT='false'
-suite_should_hold
+suite_should_error 'suite timed out'
 
 export A_SCRIPT='false'
 export B_SCRIPT='true'
-suite_should_hold
+suite_should_error 'suite timed out'

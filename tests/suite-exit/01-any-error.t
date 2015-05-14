@@ -23,7 +23,7 @@ set_test_number 8
 
 # Exit if any task errors
 
-export EXIT_WHEN='error'
+export EXIT_WHEN='exit on task error'
 
 export A_SCRIPT='true'
 export B_SCRIPT='true'
@@ -31,8 +31,8 @@ suite_should_succeed
 
 export A_SCRIPT='true'
 export B_SCRIPT='false'
-suite_should_error
+suite_should_error 'One or more tasks have failed'
 
 export A_SCRIPT='false'
 export B_SCRIPT='true'
-suite_should_error
+suite_should_error 'One or more tasks have failed'

@@ -27,33 +27,13 @@ function suite_should_succeed() {
     purge_suite "${SUITE_NAME}"
 }
 
-# Install, run a suite and expect failure
+# Install, run a suite and expect failure with message in stderr
 function suite_should_error() {
+    message=$1
     install_suite "$TEST_NAME_BASE" "suite"
     run_ok "${TEST_NAME_BASE}:validate" cylc validate "${SUITE_NAME}"
     suite_run_fail "${TEST_NAME_BASE}:run" cylc run --debug "${SUITE_NAME}"
-    # TODO: fix grep
-    grep_ok 'xxxxxx' "${SUITE_LOG_DIR}.log"
-    purge_suite "${SUITE_NAME}"
-}
-
-# Install, run a suite and expect it to fail but run a parallel job
-function suite_should_error_and_run() {
-    parallel_task=$1
-    install_suite "$TEST_NAME_BASE" "suite"
-    run_ok "${TEST_NAME_BASE}:validate" cylc validate "${SUITE_NAME}"
-    suite_run_fail "${TEST_NAME_BASE}:run" cylc run --debug "${SUITE_NAME}"
-    # TODO: fix grep
-    grep_ok 'xxxxxx' "${SUITE_LOG_DIR}.log"
-    purge_suite "${SUITE_NAME}"
-}
-
-# Install, run a suite and expect it to hold
-function suite_should_hold() {
-    install_suite "$TEST_NAME_BASE" "suite"
-    run_ok "${TEST_NAME_BASE}:validate" cylc validate "${SUITE_NAME}"
-    suite_run_fail "${TEST_NAME_BASE}:run" cylc run --debug --reference-log "${SUITE_NAME}"
-    grep_ok 'suite timed out' "${TEST_NAME_BASE}:run.stderr"
+    grep_ok "${message}" "${TEST_NAME_BASE}:run.stderr"
     purge_suite "${SUITE_NAME}"
 }
 

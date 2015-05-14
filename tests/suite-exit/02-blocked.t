@@ -23,7 +23,7 @@ set_test_number 8
 
 # Exit when no more progress can be made
 
-export EXIT_WHEN='blocked'
+export EXIT_WHEN='exit when blocked'
 
 export A_SCRIPT='true'
 export B_SCRIPT='true'
@@ -31,8 +31,8 @@ suite_should_succeed
 
 export A_SCRIPT='true'
 export B_SCRIPT='false'
-suite_should_error_and_run 'c'
+suite_should_error 'No tasks can run'
 
 export A_SCRIPT='false'
 export B_SCRIPT='true'
-suite_should_error_and_run 'c'
+suite_should_error 'No tasks can run'

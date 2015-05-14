@@ -225,6 +225,7 @@ SPEC = {
         'required run mode'                   : vdr( vtype='string', options=['live','dummy','simulation'] ),
         'force run mode'                      : vdr( vtype='string', options=['live','dummy','simulation'] ),
         'abort if any task fails'             : vdr( vtype='boolean', default=False ),
+        'shutdown'                            : vdr( vtype='string', options=['hold on task error','exit on task error','exit when blocked','hold always']),
         'log resolved dependencies'           : vdr( vtype='boolean', default=False ),
         'environment' : {
             '__MANY__'                        : vdr( vtype='string' ),

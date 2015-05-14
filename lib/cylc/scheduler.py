@@ -947,7 +947,25 @@ class scheduler(object):
             if self.run_mode != 'simulation':
                 self.pool.check_task_timers()
 
-            auto_stop = self.pool.check_auto_shutdown()
+            if self.config.cfg['cylc']['shutdown'] == 'exit on task error':
+                if self.pool.any_task_failed():
+                    raise SchedulerError('One or more tasks have failed')
+
+            if self.config.cfg['cylc']['shutdown'] == 'exit when blocked':
+                # Wait another cycle to see if the current state triggers
+                # anything
+                if self.pool.no_assigned_tasks():
+                    if self.blocked == True:
+                        raise SchedulerError('No tasks can run')
+                    else:
+                        self.blocked = True
+                else:
+                    self.blocked = False
+
+            if self.config.cfg['cylc']['shutdown'] == 'hold always':
+                auto_stop = False
+            else:
+                auto_stop = self.pool.check_auto_shutdown()
 
             if self.stop_clock_done() or self.stop_task_done() or auto_stop:
                 self.command_set_stop_cleanly()
