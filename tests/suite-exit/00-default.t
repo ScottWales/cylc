@@ -19,12 +19,20 @@
 
 source "$(dirname "$0")/test_header"
 
-set_test_number 4
+set_test_number 8
 
-for state in success fail; do
-    install_suite "$TEST_NAME_BASE" "${TEST_NAME_BASE}:${state}"
-    run_ok "${TEST_NAME_BASE}:${state}:validate" cylc validate "${SUITE_NAME}"
-    suite_run_ok "${TEST_NAME_BASE}:${state}:run" cylc run --reference-test --debug "${SUITE_NAME}"
-    purge_suite "${SUITE_NAME}"
-done
+# Default behaviour is 'hold on error'
 
+unset EXIT_WHEN
+
+export A_SCRIPT='true'
+export B_SCRIPT='true'
+suite_should_succeed
+
+export A_SCRIPT='true'
+export B_SCRIPT='false'
+suite_should_hold
+
+export A_SCRIPT='false'
+export B_SCRIPT='true'
+suite_should_hold
