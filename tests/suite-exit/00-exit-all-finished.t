@@ -19,11 +19,12 @@
 
 source "$(dirname "$0")/test_header"
 
-install_suite "$TEST_NAME_BASE" "$TEST_NAME_BASE"
+set_test_number 4
 
-set_test_number 2
-run_ok "${TEST_NAME_BASE}:validate" cylc validate "${SUITE_NAME}"
-suite_run_ok "${TEST_NAME_BASE}:run" cylc run --reference-test --debug "${SUITE_NAME}"
-
-purge_suite "${SUITE_NAME}"
+for state in success fail; do
+    install_suite "$TEST_NAME_BASE" "${TEST_NAME_BASE}:${state}"
+    run_ok "${TEST_NAME_BASE}:${state}:validate" cylc validate "${SUITE_NAME}"
+    suite_run_ok "${TEST_NAME_BASE}:${state}:run" cylc run --reference-test --debug "${SUITE_NAME}"
+    purge_suite "${SUITE_NAME}"
+done
 
