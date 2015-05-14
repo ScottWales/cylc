@@ -10,10 +10,15 @@
 
 [scheduling]
     [[dependencies]]
-        graph = "a => b"
+        graph = """
+            a => b
+            c
+        """
 
 [runtime]
     [[a]]
         script = {{ environ['A_SCRIPT'] | default('true') }}
     [[b]]
         script = {{ environ['B_SCRIPT'] | default('true') }}
+    [[c]]
+        script = true
