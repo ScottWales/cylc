@@ -19,7 +19,7 @@
 
 source "$(dirname "$0")/test_header"
 
-set_test_number 8
+set_test_number 9
 
 # Hold when all tasks are complete for manual review
 
