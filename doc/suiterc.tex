@@ -34,6 +34,20 @@ right-click menu, or at run time with the \lstinline=cylc show= command.
 \item {\em default:} (none)
 \end{myitemize}
 
+\subsubsection{URL} \label{SuiteURL} 
+
+A web URL to suite documentation.  If present it can be browsed with the
+\lstinline=cylc doc= command, or from the gcylc Suite menu.  The variable
+\lstinline=${CYLC_SUITE_NAME}= will be replaced with the actual suite name
+(note this is not a shell environment variable in this context). See also
+task URLs (\ref{TaskURL}).
+
+\begin{myitemize}
+\item {\em type:} string (URL)
+\item {\em default:} (none)
+\item {\em example:} \lstinline=http://suites/${CYLC_SUITE_NAME}/index.html=
+\end{myitemize}
+
 \subsection{[cylc]}
 
 This section is for configuration that is not specifically task-related.
@@ -462,7 +476,7 @@ the \ref{cycle-point-time-zone} if that is set.
     \item {\em default:} (none)
 \end{myitemize}
 
-\subsubsection[initial cycle point]{[scheduling] $\rightarrow$ initial cycle point constraints}
+\subsubsection[initial cycle point constraints]{[scheduling] $\rightarrow$ initial cycle point constraints}
 \label{initial cycle point constraints}
 
 In a cycling suite it is possible to restrict the initial cycle point by
@@ -475,7 +489,7 @@ constraints.
     \item {\em default:} (none)
 \end{myitemize}
 
-\subsubsection[final cycle point]{[scheduling] $\rightarrow$ final cycle point constraints}
+\subsubsection[final cycle point constraints]{[scheduling] $\rightarrow$ final cycle point constraints}
 \label{final cycle point constraints}
 
 In a cycling suite it is possible to restrict the final cycle point by
@@ -575,11 +589,11 @@ In delayed or historical operation clock-triggered tasks do not constrain the
 suite until they catch up to the wall clock.
 
 \begin{myitemize}
-    \item {\em type:} list of task or family names with offsets expressed as an
-        ISO8601 interval string, positive or negative, e.g. \lstinline=PT1H=
-        for 1 hour.
+    \item {\em type:} list of task or family names with optional offsets in
+        brackets. An offset should be expressed as an ISO8601 interval
+        string, positive or negative, e.g. \lstinline=PT1H= for 1 hour.
     \item {\em default:} (none)
-    \item {\em examples:} \lstinline=foo(PT1H30M)=, \lstinline=bar(PT1.5H)=
+    \item {\em examples:} \lstinline=foo(PT1H30M)=, \lstinline=bar(PT1.5H)=, \lstinline=baz=
 \end{myitemize}
 
 \paragraph[sequential]{[scheduling] $\rightarrow$ [[special tasks]] $\rightarrow$ sequential}
@@ -797,76 +811,99 @@ A multi-line description of this namespace, retrievable from running tasks with 
 \item {\em root default:} (none)
 \end{myitemize}
 
+\paragraph[URL]{[runtime] $\rightarrow$ [[\_\_NAME\_\_]] $\rightarrow$ URL}
+\label{TaskURL}
 
-\paragraph[initial scripting]{[runtime] $\rightarrow$ [[\_\_NAME\_\_]] $\rightarrow$ initial scripting}
+A web URL to task documentation for this suite.  If present it can be browsed
+with the \lstinline=cylc doc= command, or by right-clicking on the task in
+gcylc.  The variables \lstinline=${CYLC_SUITE_NAME}= and
+\lstinline=${CYLC_TASK_NAME}= will be replaced with the actual suite and task
+names (note that these are not environment variables in this context). See also
+suite URLs (\ref{SuiteURL}).
 
-Initial scripting is executed at the top of the task job script just
-before the \lstinline=cylc task started= message call is made, and
-before the task execution environment is configured - so it does not
-have access to any suite or task environment variables.  The original
-intention was to allow remote tasks to source login scripts before
-calling the first cylc command, e.g.\ to set \lstinline=$PYTHONPATH= if
-Pyro has been installed locally. Note however that the remote task
-invocation mechanism now automatically sources both
-\lstinline=/etc/profile= and \lstinline=$HOME/.profile= if they exist.
-For other uses pre-command scripting should be used if possible because
-it can has access to the task execution environment.
+\begin{myitemize}
+\item {\em type:} string (URL)
+\item {\em default:} (none)
+\item {\em example:} you can set URLs to all tasks in a suite by putting
+    something like the following in the root namespace:
+    \begin{lstlisting}
+[runtime]
+    [[root]]
+        URL = http://suites/${CYLC_SUITE_NAME}/${CYLC_TASK_NAME}.html
+    \end{lstlisting}
+\end{myitemize}
+
+(Note that URLs containing the suite comment delimiter
+\lstinline=#= must be protected by quotes).
+
+\paragraph[init-script]{[runtime] $\rightarrow$ [[\_\_NAME\_\_]] $\rightarrow$ init-script}
+
+This is written to the top of the task job script before the task execution
+environment is configured, so it does not have access to any suite or task
+environment variables. It can be a single command or multiple lines of
+scripting. The original intention was to allow remote tasks to
+source login scripts to configure their access to cylc, but this should no
+longer be necessary (see~\ref{HowTasksGetAccessToCylc}). See also
+\lstinline=env-script=, \lstinline=pre-script=, \lstinline=script=, and
+\lstinline=post-script=.
+
 \begin{myitemize}
 \item {\em type:} string
 \item {\em default:} (none)
-\item {\em example:} \lstinline@initial scripting = "echo Hello World"@
+\item {\em example:} \lstinline@init-script = "echo Hello World"@
 \end{myitemize}
 
-\paragraph[environment scripting]{[runtime] $\rightarrow$ [[\_\_NAME\_\_]] $\rightarrow$ environment scripting}
+\paragraph[env-script]{[runtime] $\rightarrow$ [[\_\_NAME\_\_]] $\rightarrow$ env-script}
 
-Environment scripting is inserted into the task job script between
-the cylc-defined environment (suite and task identity, etc.) and the
-user-defined task runtime environment - i.e.\ it has access to the
-cylc environment, and the task environment has access to the results of
-this scripting.
+This is written to the task job script between the cylc-defined environment
+(suite and task identity, etc.) and the user-defined task runtime environment -
+i.e.\ it has access to the cylc environment, and the task environment has
+access to variables defined by this scripting. It can be a single command or
+multiple lines of scripting.  See also \lstinline=init-script=,
+\lstinline=pre-script=, \lstinline=script=, and \lstinline=post-script=.
+
 \begin{myitemize}
 \item {\em type:} string
 \item {\em default:} (none)
-\item {\em example:} \lstinline@environment scripting = "echo Hello World"@
+\item {\em example:} \lstinline@env-script = "echo Hello World"@
 \end{myitemize}
 
-\paragraph[command scripting]{[runtime] $\rightarrow$ [[\_\_NAME\_\_]] $\rightarrow$ command scripting}
+\paragraph[pre-script]{ [runtime] $\rightarrow$ [[\_\_NAME\_\_]] $\rightarrow$ pre-script}
 
-The scripting to execute when the associated task is ready to run - this
-can be a single command or multiple lines of scripting.
-
-\begin{myitemize}
-\item {\em type:} string
-\item {\em root default:} \lstinline=echo "Default command scripting"; sleep 10=
-\end{myitemize}
-
-
-\paragraph[pre-command scripting]{ [runtime] $\rightarrow$ [[\_\_NAME\_\_]] $\rightarrow$ pre-command scripting}
-
-Scripting to be executed immediately {\em before} the command scripting.
-This would typically be used to add scripting to every task in a family
-(for individual tasks you could just incorporate the extra commands into
-the main command scripting). See also {\em post-command scripting},
-below.
+This is written to the task job script immediately before the \lstinline=script=
+item (just below). It can be a single command or multiple lines of scripting.
+See also \lstinline=init-script=, \lstinline=env-script=, \lstinline=script=, and
+\lstinline=post-script=.
 
 \begin{myitemize}
 \item {\em type:} string
 \item {\em default:} (none)
 \item {\em example:}
  \begin{lstlisting}
-    pre-command scripting = """
+    pre-script = """
       . $HOME/.profile
       echo Hello from suite ${CYLC_SUITE_REG_NAME}!"""
  \end{lstlisting}
 \end{myitemize}
 
-\paragraph[post-command scripting]{ [runtime] $\rightarrow$ [[\_\_NAME\_\_]] $\rightarrow$ post-command scripting}
+\paragraph[script]{[runtime] $\rightarrow$ [[\_\_NAME\_\_]] $\rightarrow$ script}
+\label{ScriptItem}
 
-Scripting to be executed immediately {\em after} the command scripting.
-This would typically be used to add scripting to every task in a family
-(for individual tasks you could just incorporate the extra commands into
-the main command scripting). See also {\em pre-command scripting},
-above.
+The is the main user-defined scripting to run when the task is ready. It can be a
+single command or multiple lines of scripting. See also \lstinline=init-script=,
+\lstinline=env-script=, \lstinline=pre-script=, and \lstinline=post-script=.
+
+\begin{myitemize}
+\item {\em type:} string
+\item {\em root default:} \lstinline=echo "Dummy task"; $(cylc rnd 1 16)=
+\end{myitemize}
+
+\paragraph[post-script]{ [runtime] $\rightarrow$ [[\_\_NAME\_\_]] $\rightarrow$ post-script}
+
+This is written to the task job script immediately after the \lstinline=script=
+item (just above).  It can be a single command or multiple lines of scripting.  See also
+\lstinline=init-script=, \lstinline=env-script=, \lstinline=pre-script=, and
+\lstinline=script=.
 
 \begin{myitemize}
 \item {\em type:} string
@@ -961,22 +998,31 @@ appropriate places in the task implementation (see~\ref{DetachingTasks}).
 \item {\em default:} False
 \end{myitemize}
 
-% HIDDEN \paragraph[hours]{ [runtime] $\rightarrow$ [[\_\_NAME\_\_]] $\rightarrow$ hours}
+\paragraph[work sub-directory]{[runtime] $\rightarrow$ [[\_\_NAME\_\_]] $\rightarrow$ work sub-directory}
+\label{worksubdirectory}
 
-\paragraph[work directory]{[runtime] $\rightarrow$ [[\_\_NAME\_\_]] $\rightarrow$ work sub-directory}
+Task job scripts are executed from within {\em work directories} created
+automatically under the suite run directory. A task can get its own work
+directory from \lstinline=$CYLC_TASK_WORK_DIR= (or simply \lstinline=$PWD= if
+it does not \lstinline=cd= elsewhere at runtime). The default directory
+path contains task name and cycle point, to provide a unique workspace for
+every instance of every task. If several tasks need to exchange files and
+simply read and write from their from current working directory, this item
+can be used to override the default to make them all use the same workspace
+(see~\ref{worksubdirectory}).
 
-Task command scripting is executed from with automatically created work
-directories, which can be accessed by their tasks through
-\lstinline=$CYLC_TASK_WORK_DIR=.  This items sets the low-level
-sub-directory name. The default value provides a unique workspace for
-each task, but this can overridden to make groups of tasks run in the
-same working directory, thereby providing a share space for tasks that
-read and write from their current working directories.
+The top level share and work directory location can be changed (e.g.\ to a
+large data area) by a global config setting (see~\ref{workdirectory}). 
 
 \begin{myitemize}
-\item {\em type:} string (directory path, may contain environment variables)
-\item {\em default:} \lstinline=$TASK_ID=
+\item {\em type:} string (directory path, can contain environment variables)
+\item {\em default:} \lstinline=$CYLC_TASK_CYCLE_POINT/$CYLC_TASK_NAME=
+\item {\em example:} \lstinline=$CYLC_TASK_CYCLE_POINT/shared/=
 \end{myitemize}
+
+Note that if you omit cycle point from the work sub-directory path successive
+instances of the task will share the same workspace.  Consider the effect on
+cycle point offset housekeeping of work directories before doing this.
 
 \paragraph[enable resurrection]{ [runtime] $\rightarrow$ [[\_\_NAME\_\_]] $\rightarrow$ enable resurrection}
 
@@ -999,31 +1045,28 @@ for a job with higher immediate priority. See also~\ref{PreemptionHPC}
 
 Dummy mode configuration.
 
-\subparagraph[command scripting]{[runtime] $\rightarrow$ [[\_\_NAME\_\_]] $\rightarrow$ [[[dummy mode]]] $\rightarrow$ command scripting}
+\subparagraph[script]{[runtime] $\rightarrow$ [[\_\_NAME\_\_]] $\rightarrow$ [[[dummy mode]]] $\rightarrow$ script}
 
-The scripting to execute when the associated task is ready to run, {\em
-in dummy mode} - this can be a single command or a multiple lines of
-scripting.
+The main \lstinline=script= item for tasks in {\em dummy mode}.
+See~\ref{ScriptItem} for documentation.
 
 \begin{myitemize}
 \item {\em type:} string
-\item {\em root default:} \lstinline=echo "Dummy command scripting"; sleep $(cylc rnd 1 16)=
+\item {\em root default:} \lstinline=echo "Dummy task"; sleep $(cylc rnd 1 16)=
 \end{myitemize}
 
-\subparagraph[disable pre-command scripting]{[runtime] $\rightarrow$ [[\_\_NAME\_\_]] $\rightarrow$ [[[dummy mode]]] $\rightarrow$ disable pre-command scripting}
+\subparagraph[disable pre-script]{[runtime] $\rightarrow$ [[\_\_NAME\_\_]] $\rightarrow$ [[[dummy mode]]] $\rightarrow$ disable pre-script}
 
-This disables pre-command scripting, is likely to contain code specific
-to the real task, in dummy mode.
+This disables the task pre-script in dummy mode.
 
 \begin{myitemize}
 \item {\em type:} boolean
 \item {\em root default:} True
 \end{myitemize}
 
-\subparagraph[disable post-command scripting]{[runtime] $\rightarrow$ [[\_\_NAME\_\_]] $\rightarrow$ [[[dummy mode]]] $\rightarrow$ disable post-command scripting}
+\subparagraph[disable post-script]{[runtime] $\rightarrow$ [[\_\_NAME\_\_]] $\rightarrow$ [[[dummy mode]]] $\rightarrow$ disable post-script}
 
-This disables post-command scripting, which is likely to contain code
-specific to the real task, in dummy mode.
+This disables the task post-script in dummy mode.
 
 \begin{myitemize}
 \item {\em type:} boolean
@@ -1089,7 +1132,7 @@ job file path.
 
 This is the shell used to interpret the job script submitted by the suite
 daemon when a task is ready to run.  {\em It has no bearing on the shell used
-in task implementations.} Command scripting and suite environment
+in task implementations.} Scripting and suite environment
 variable assignment expressions must be valid for this shell. The
 latter is currently hardwired into cylc as
 \lstinline@export item=value@ - valid for both bash and ksh

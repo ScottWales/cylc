@@ -46,7 +46,7 @@ from cylc.cycling.loader import (
     get_interval, get_interval_cls, ISO8601_CYCLING_TYPE)
 from cylc.CylcError import SchedulerError, TaskNotFoundError
 from cylc.prerequisites.plain_prerequisites import plain_prerequisites
-from cylc.broadcast import broadcast
+from cylc.broadcast import Broadcast
 
 
 class TaskPool(object):
@@ -88,7 +88,7 @@ class TaskPool(object):
         self.hold_point = None
         self.held_future_tasks = []
 
-        self.wireless = broadcast(config.get_linearized_ancestors())
+        self.wireless = Broadcast(config.get_linearized_ancestors())
         self.pyro.connect(self.wireless, 'broadcast_receiver')
 
         self.broker = broker()
@@ -1035,12 +1035,12 @@ class TaskPool(object):
         else:
             return True, jobfile_path
 
-    def get_task_requisites(self, ids):
+    def get_task_requisites(self, taskid):
         info = {}
         found = False
         for itask in self.get_tasks():
             id_ = itask.identity
-            if id_ in ids:
+            if id_ == taskid:
                 found = True
                 extra_info = {}
                 # extra info for clocktriggered tasks

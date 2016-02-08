@@ -579,8 +579,12 @@ Main Control GUI that displays one or more views or interfaces to the suite.
         self.updater = Updater(self.cfg, self.info_bar,
                                self.restricted_display)
         self.updater.start()
-
         self.restart_views()
+
+        self.updater.filter_states_excl = self.filter_states_excl
+        self.updater.filter_name_string = self.filter_name_string
+        self.updater.refilter()
+        self.refresh_views()
 
     def setup_views(self):
         """Create our view containers."""
@@ -1012,10 +1016,9 @@ Main Control GUI that displays one or more views or interfaces to the suite.
         item1 = " -i '[scheduling]initial cycle point'"
         item2 = " -i '[scheduling]final cycle point'"
         command = (
-            "cylc get-suite-config --mark-up --host=" + self.cfg.host +
-            " " + self.cfg.template_vars_opts + " " + " --user=" +
-            self.cfg.owner + " --one-line" + item1 + item2 + " " +
-            self.cfg.suite)
+            "cylc get-suite-config --mark-up" + self.get_remote_run_opts() +
+            " " + self.cfg.template_vars_opts + " --one-line" + item1 +
+            item2 + " " + self.cfg.suite)
         res = run_get_stdout(command, filter=True)  # (T/F, ['ct ct'])
 
         if res[0]:
@@ -1082,7 +1085,7 @@ been defined for this suite""").inform()
             options += group.get_options()
         window.destroy()
 
-        options += ' --user=' + self.cfg.owner + ' --host=' + self.cfg.host
+        options += self.get_remote_run_opts()
 
         command += ' ' + options + ' ' + self.cfg.suite + ' ' + point_string
 
@@ -1126,8 +1129,8 @@ The Cylc Suite Engine.
         about.destroy()
 
     def view_task_descr(self, w, e, task_id):
-        command = ("cylc show --host=" + self.cfg.host + " --user=" +
-                   self.cfg.owner + " " + self.cfg.suite + " " + task_id)
+        command = ("cylc show" + self.get_remote_run_opts() + " " +
+                   self.cfg.suite + " " + task_id)
         foo = gcapture_tmpfile(command, self.cfg.cylc_tmpdir, 600, 400)
         self.gcapture_windows.append(foo)
         foo.run()
@@ -1167,17 +1170,20 @@ The Cylc Suite Engine.
 
         return False
 
-    def get_right_click_menu(self, task_id, hide_task=False,
-                             task_is_family=False):
+    def get_right_click_menu(self, task_id, task_is_family=False):
         """Return the default menu for a task."""
         menu = gtk.Menu()
-        if not hide_task:
-            menu_root = gtk.MenuItem(task_id)
-            menu_root.set_submenu(menu)
+        menu_root = gtk.MenuItem(task_id)
+        menu_root.set_submenu(menu)
 
-            title_item = gtk.MenuItem('Task: ' + task_id.replace("_", "__"))
-            title_item.set_sensitive(False)
-            menu.append(title_item)
+        title_item = gtk.MenuItem('Task: ' + task_id.replace("_", "__"))
+        title_item.set_sensitive(False)
+        menu.append(title_item)
+
+        url_item = gtk.MenuItem('_Browse task URL')
+        name, point_string = TaskID.split(task_id)
+        url_item.connect('activate', self.browse, "-t", name, self.cfg.suite)
+        menu.append(url_item)
 
         menu_items = self._get_right_click_menu_items(task_id, task_is_family)
         for item in menu_items:
@@ -1221,12 +1227,19 @@ The Cylc Suite Engine.
             js_item.connect('button-press-event', self.view_task_info, task_id,
                             'job')
 
-            info_item = gtk.ImageMenuItem('log files')
+            out_item = gtk.ImageMenuItem('job stdout')
             img = gtk.image_new_from_stock(gtk.STOCK_DND, gtk.ICON_SIZE_MENU)
-            info_item.set_image(img)
-            view_menu.append(info_item)
-            info_item.connect(
-                'button-press-event', self.view_task_info, task_id, None)
+            out_item.set_image(img)
+            view_menu.append(out_item)
+            out_item.connect('button-press-event', self.view_task_info, task_id,
+                             'job.out')
+
+            err_item = gtk.ImageMenuItem('job stderr')
+            img = gtk.image_new_from_stock(gtk.STOCK_DND, gtk.ICON_SIZE_MENU)
+            err_item.set_image(img)
+            view_menu.append(err_item)
+            err_item.connect('button-press-event', self.view_task_info, task_id,
+                             'job.err')
 
             info_item = gtk.ImageMenuItem('prereq\'s & outputs')
             img = gtk.image_new_from_stock(
@@ -1533,8 +1546,9 @@ The Cylc Suite Engine.
 
     def popup_requisites(self, w, e, task_id):
         try:
-            result = self.get_pyro(
-                'suite-info').get('task requisites', [task_id])
+            name, point_string = TaskID.split(task_id)
+            result = self.get_pyro('suite-info').get(
+                'task requisites', name, point_string)
         except Exception, x:
             warning_dialog(str(x), self.window).warn()
             return
@@ -2297,7 +2311,7 @@ shown here in the state they were in at the time of triggering.''')
             warning_dialog(result[1], self.window).warn()
 
     def poll_all(self, w):
-        command = "cylc poll " + self.cfg.suite + " --host=" + self.cfg.host
+        command = "cylc poll" + self.get_remote_run_opts() + " " + self.cfg.suite
         foo = gcapture_tmpfile(command, self.cfg.cylc_tmpdir, 600, 400)
         self.gcapture_windows.append(foo)
         foo.run()
@@ -2322,8 +2336,7 @@ or remove task definitions without restarting the suite."""
             return
 
         command = (
-            "cylc reload -f --host=" + self.cfg.host +
-            " --user=" + self.cfg.owner + " " + self.cfg.suite)
+            "cylc reload -f" + self.get_remote_run_opts() + " " + self.cfg.suite)
         foo = gcapture_tmpfile(command, self.cfg.cylc_tmpdir, 600, 400)
         self.gcapture_windows.append(foo)
         foo.run()
@@ -2677,6 +2690,12 @@ to reduce network traffic.""")
         tools_menu = gtk.Menu()
         tools_menu_root = gtk.MenuItem('_Suite')
         tools_menu_root.set_submenu(tools_menu)
+
+        url_item = gtk.ImageMenuItem('_Browse suite URL')
+        img = gtk.image_new_from_stock(gtk.STOCK_APPLY, gtk.ICON_SIZE_MENU)
+        url_item.set_image(img)
+        tools_menu.append(url_item)
+        url_item.connect('activate', self.browse, self.cfg.suite)
 
         val_item = gtk.ImageMenuItem('_Validate')
         img = gtk.image_new_from_stock(gtk.STOCK_APPLY, gtk.ICON_SIZE_MENU)
@@ -3446,8 +3465,8 @@ For more Stop options use the Control menu.""")
     def get_remote_run_opts(self):
         return " --host=" + self.cfg.host + " --user=" + self.cfg.owner
 
-    def browse(self, b, option=''):
-        command = 'cylc doc ' + option
+    def browse(self, b, *args):
+        command = 'cylc doc ' + self.get_remote_run_opts() + ' ' + ' '.join(args)
         foo = gcapture_tmpfile(command, self.cfg.cylc_tmpdir, 700)
         self.gcapture_windows.append(foo)
         foo.run()

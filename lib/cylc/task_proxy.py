@@ -67,7 +67,6 @@ from cylc.mp_pool import (
 )
 from cylc.task_id import TaskID
 from cylc.task_output_logs import logfiles
-from cylc.wallclock import get_time_string_from_unix_time
 
 
 class TaskProxySequenceBoundsError(ValueError):
@@ -154,8 +153,6 @@ class TaskProxy(object):
         self.hold_on_retry = False
         self.manual_trigger = False
 
-        self.latest_message = ""
-
         self.submission_timer_timeout = None
         self.execution_timer_timeout = None
 
@@ -163,9 +160,10 @@ class TaskProxy(object):
         self.started_time = None
         self.finished_time = None
         self.summary = {
-            'latest_message': self.latest_message,
+            'latest_message': "",
             'submitted_time': None,
             'submitted_time_string': None,
+            'submit_num': self.submit_num,
             'started_time': None,
             'started_time_string': None,
             'finished_time': None,
@@ -218,7 +216,7 @@ class TaskProxy(object):
 
         # An initial db state entry is created at task proxy init. On reloading
         # or restarting the suite, the task proxies already have this db entry.
-        if not is_reload:
+        if not is_reload and self.submit_num == 0:
             self.record_db_state()
 
         if self.submit_num > 0:
@@ -579,7 +577,9 @@ class TaskProxy(object):
         err = result['ERR']
         self.command_log("POLL", out, err)
         if result['EXIT'] != 0:
-            self.log(WARNING, 'job poll failed')
+            self.summary['latest_message'] = 'poll failed'
+            self.log(WARNING, 'job(%02d) poll failed' % self.submit_num)
+            flags.iflag = True
             return
         if not self.state.is_currently('submitted', 'running'):
             # Poll results can come in after a task finishes
@@ -599,7 +599,9 @@ class TaskProxy(object):
         err = result['ERR']
         self.command_log("KILL", out, err)
         if result['EXIT'] != 0:
-            self.log(WARNING, 'job kill failed')
+            self.summary['latest_message'] = 'kill failed'
+            self.log(WARNING, 'job(%02d) kill failed' % self.submit_num)
+            flags.iflag = True
             return
         if self.state.is_currently('submitted'):
             self.log(INFO, 'job killed')
@@ -667,13 +669,17 @@ class TaskProxy(object):
         else:
             # There is a submission retry lined up.
             self.sub_retry_delay = sub_retry_delay
-            delay_msg = "submit-retrying in %s" % (
-                get_seconds_as_interval_string(sub_retry_delay))
-            msg = "job submission failed, " + delay_msg
-            self.log(INFO, msg)
-
             self.sub_retry_delay_timer_timeout = (
                 time.time() + sub_retry_delay)
+            timeout_str = get_time_string_from_unix_time(
+                self.sub_retry_delay_timer_timeout)
+
+            delay_msg = "submit-retrying in %s" % (
+                get_seconds_as_interval_string(sub_retry_delay))
+            msg = "submission failed, %s (after %s)" % (delay_msg, timeout_str)
+            self.log(INFO, "job(%02d) " % self.submit_num + msg)
+            self.summary['latest_message'] = msg
+
             self.sub_try_number += 1
             self.set_status('submit-retrying')
             self.record_db_event(event="submission failed",
@@ -685,7 +691,8 @@ class TaskProxy(object):
             self.record_db_event(
                 event="submission failed",
                 message="submit-retrying in " + str(sub_retry_delay))
-            self.handle_event('submission retry', msg)
+            self.handle_event(
+                "submission retry", "job submission failed, " + delay_msg)
             if self.hold_on_retry:
                 self.reset_state_held()
 
@@ -725,15 +732,7 @@ class TaskProxy(object):
         self.summary['submitted_time_string'] = (
             get_time_string_from_unix_time(self.submitted_time))
         self.summary['submit_method_id'] = self.submit_method_id
-        self.summary['batch_sys_name'] = self.batch_sys_name
-        self.summary['host'] = self.task_host
-        if self.submit_method_id:
-            self.latest_message = "%s submitted as '%s'" % (
-                self.identity, self.submit_method_id)
-        else:
-            self.latest_message = outp
-        self.summary['latest_message'] = (
-            self.latest_message.replace(self.identity, "", 1).strip())
+        self.summary['latest_message'] = "submitted"
         self.handle_event(
             'submitted', 'job submitted', db_event='submission succeeded')
 
@@ -774,16 +773,22 @@ class TaskProxy(object):
         else:
             # There is a retry lined up
             self.retry_delay = retry_delay
+            self.retry_delay_timer_timeout = (time.time() + retry_delay)
+            timeout_str = get_time_string_from_unix_time(
+                self.retry_delay_timer_timeout)
+
             delay_msg = "retrying in %s" % (
                 get_seconds_as_interval_string(retry_delay))
-            msg = "job failed, " + delay_msg
-            self.log(INFO, msg)
-            self.retry_delay_timer_timeout = (time.time() + retry_delay)
+            msg = "failed, %s (after %s)" % (delay_msg, timeout_str)
+            self.log(INFO, "job(%02d) " % self.submit_num + msg)
+            self.summary['latest_message'] = msg
+
             self.try_number += 1
             self.set_status('retrying')
             self.prerequisites.set_all_satisfied()
             self.outputs.set_all_incomplete()
-            self.handle_event('retry', msg, db_msg=delay_msg)
+            self.handle_event(
+                "retry", "job failed, " + delay_msg, db_msg=delay_msg)
             if self.hold_on_retry:
                 self.reset_state_held()
 
@@ -858,6 +863,7 @@ class TaskProxy(object):
         """Increment and record the submit number."""
         self.log(DEBUG, "incrementing submit number")
         self.submit_num += 1
+        self.summary['submit_num'] = self.submit_num
         self.record_db_event(event="incrementing submit number")
         self.record_db_update("task_states", submit_num=self.submit_num)
 
@@ -934,23 +940,24 @@ class TaskProxy(object):
 
         # dynamic instantiation - don't know job sub method till run time.
         self.batch_sys_name = rtconfig['job submission']['method']
+        self.summary['batch_sys_name'] = self.batch_sys_name
 
-        command = rtconfig['command scripting']
+        command = rtconfig['script']
         use_manual = rtconfig['manual completion']
         if self.tdef.run_mode == 'dummy':
             # (dummy tasks don't detach)
             use_manual = False
-            command = rtconfig['dummy mode']['command scripting']
-            if rtconfig['dummy mode']['disable pre-command scripting']:
+            command = rtconfig['dummy mode']['script']
+            if rtconfig['dummy mode']['disable pre-script']:
                 precommand = None
-            if rtconfig['dummy mode']['disable post-command scripting']:
+            if rtconfig['dummy mode']['disable post-script']:
                 postcommand = None
         else:
-            precommand = rtconfig['pre-command scripting']
-            postcommand = rtconfig['post-command scripting']
+            precommand = rtconfig['pre-script']
+            postcommand = rtconfig['post-script']
 
         if self.tdef.suite_polling_cfg:
-            # generate automatic suite state polling command scripting
+            # generate automatic suite state polling script
             comstr = "cylc suite-state " + \
                      " --task=" + self.tdef.suite_polling_cfg['task'] + \
                      " --point=" + str(self.point) + \
@@ -987,6 +994,7 @@ class TaskProxy(object):
             self.user_at_host = self.task_owner + "@" + self.task_host
         else:
             self.user_at_host = self.task_host
+        self.summary['host'] = self.user_at_host
         self.submission_poll_timer.set_host(self.task_host)
         self.execution_poll_timer.set_host(self.task_host)
 
@@ -1002,9 +1010,9 @@ class TaskProxy(object):
             rtconfig, local_jobfile_path, common_job_log_path)
         self.job_conf.update({
             'use manual completion': use_manual,
-            'pre-command scripting': precommand,
-            'command scripting': command,
-            'post-command scripting': postcommand,
+            'pre-script': precommand,
+            'script': command,
+            'post-script': postcommand,
         })
 
     def _prepare_manip(self):
@@ -1038,8 +1046,8 @@ class TaskProxy(object):
             'task id': self.identity,
             'batch system name': rtconfig['job submission']['method'],
             'directives': rtconfig['directives'],
-            'initial scripting': rtconfig['initial scripting'],
-            'environment scripting': rtconfig['environment scripting'],
+            'init-script': rtconfig['init-script'],
+            'env-script': rtconfig['env-script'],
             'runtime environment': rtconfig['environment'],
             'remote suite path': (
                 rtconfig['remote']['suite definition directory']),
@@ -1048,9 +1056,9 @@ class TaskProxy(object):
                 rtconfig['job submission']['command template']),
             'work sub-directory': rtconfig['work sub-directory'],
             'use manual completion': False,
-            'pre-command scripting': '',
-            'command scripting': '',
-            'post-command scripting': '',
+            'pre-script': '',
+            'script': '',
+            'post-script': '',
             'namespace hierarchy': self.tdef.namespace_hierarchy,
             'submission try number': self.sub_try_number,
             'try number': self.try_number,
@@ -1240,9 +1248,8 @@ class TaskProxy(object):
             '(current:' + self.state.get_status() + ')> ' + message
         )
         # always update the suite state summary for latest message
-        self.latest_message = message
-        self.summary['latest_message'] = (
-            self.latest_message.replace(self.identity, "", 1).strip())
+        self.summary['latest_message'] = message.replace(
+            self.identity, "", 1).strip()
         flags.iflag = True
 
         if self.reject_if_failed(message):
@@ -1543,6 +1550,6 @@ class TaskProxy(object):
             cmd = shlex.split(ssh_tmpl) + [str(self.user_at_host), sh_cmd]
 
         # Queue the command for execution
-        self.log(INFO, "initiate %s" % (cmd_key))
+        self.log(INFO, "job(%02d) initiate %s" % (self.submit_num, cmd_key))
         return SuiteProcPool.get_inst().put_command(
             cmd_type, cmd, callback, is_bg_submit, stdin_file_path)

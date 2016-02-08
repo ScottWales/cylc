@@ -353,16 +353,16 @@ class scheduler(object):
         return self.pool.get_task_jobfile_path(task_id)
 
     def info_get_suite_info( self ):
-        return [ self.config.cfg['title'], user ]
-
-    def info_get_task_info( self, task_names ):
         info = {}
-        for name in task_names:
-            if self._task_type_exists( name ):
-                info[ name ] = self.config.describe(name)
-            else:
-                info[ name ] = ['ERROR: no such task type']
+        for item in 'title', 'description':
+            info[item] = self.config.cfg[item]
         return info
+
+    def info_get_task_info(self, name):
+        try:
+            return self.config.describe(name)
+        except KeyError:
+            return {}
 
     def info_get_all_families( self, exclude_root=False ):
         fams = self.config.get_first_parent_descendants().keys()
@@ -389,13 +389,10 @@ class scheduler(object):
                         self.config.suite_polling_tasks, \
                         self.config.leaves, self.config.feet
 
-    def info_get_task_requisites( self, in_ids ):
-        ids = []
-        for id in in_ids:
-            if not self._task_type_exists( id ):
-                continue
-            ids.append( id )
-        return self.pool.get_task_requisites( ids )
+    def info_get_task_requisites(self, name, point_string):
+        point_string = standardise_point_string(point_string)
+        return self.pool.get_task_requisites(
+            TaskID.get(name, point_string))
 
     def command_set_stop_cleanly(self, kill_active_tasks=False):
         """Stop job submission and set the flag for clean shutdown."""
@@ -622,6 +619,7 @@ class scheduler(object):
             self.options.templatevars_file, run_mode=self.run_mode,
             cli_initial_point_string=self._cli_initial_point_string,
             cli_start_point_string=self._cli_start_point_string,
+            cli_final_point_string=self.options.final_point_string,
             is_restart=self.is_restart, is_reload=reconfigure
         )
 
@@ -906,8 +904,6 @@ class scheduler(object):
                 self.pool.remove_spent_tasks()
                 self.pool.remove_suiciding_tasks()
 
-                self.state_dumper.dump()
-
                 self.do_update_state_summary = True
 
                 self.pool.wireless.expire( self.pool.get_min_point() )
@@ -929,6 +925,7 @@ class scheduler(object):
                 flags.iflag = False
                 self.do_update_state_summary = False
                 self.update_state_summary()
+                self.state_dumper.dump()
 
             if self.config.cfg['cylc']['event hooks']['timeout']:
                 self.check_suite_timer()
