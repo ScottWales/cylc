@@ -27,6 +27,10 @@
 ---
 language: python
 
+python:
+    - '2.6'
+    - '2.7'
+
 # General environment setup before we start installing stuff
 before_install:
     # Clear bashrc - the default does nothing if not in an interactive shell.
