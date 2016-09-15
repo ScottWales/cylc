@@ -1,3 +1,4 @@
+from __future__ import print_function
 #############################################################################
 #
 #	Sets up Pyro's configuration (Pyro.config).
@@ -89,7 +90,7 @@ class Config(object):
 		reader = ConfigReader(_defaults)
 		try:
 			reader.parse(configFile)
-		except EnvironmentError,x:
+		except EnvironmentError as x:
 			raise PyroError("Error reading config file: "+configFile+"; "+str(x));
 		self.__dict__.update(reader.items)
 		if configFile:
@@ -125,8 +126,8 @@ class Config(object):
 				else:
 					# use tempfile to safely create a unique temporary file even on multi-cpu nodes
 					f=tempfile.TemporaryFile(dir=self.PYRO_STORAGE, suffix='.tmp', prefix='_pyro_')
-			except Exception,x:
-				print x
+			except Exception as x:
+				print(x)
 				raise IOError('no write access to PYRO_STORAGE ['+self.PYRO_STORAGE+']')
 			else:
 				f.close()
@@ -144,7 +145,7 @@ class ConfigReader(object):
 		self.items=defaults.copy()
 
 	def _check(self, filename):
-		print "ConfigReader: checking file", filename
+		print("ConfigReader: checking file", filename)
 		items=[]
 		for l in open(filename).readlines():
 			l=l.rstrip()
@@ -157,15 +158,15 @@ class ConfigReader(object):
 		allitems.sort()
 		for item in allitems:
 			if item not in items:
-				print "MISSING item: ",item
+				print("MISSING item: ",item)
 			try:
 				items.remove(item)
 			except ValueError:
 				pass
 		if items:
-			print "items NOT in DEFAULTS:", items
+			print("items NOT in DEFAULTS:", items)
 		else:
-			print "ok!"
+			print("ok!")
 
 
 	def parse(self, filename):
@@ -221,7 +222,7 @@ class ConfigReader(object):
 
 # easy config diagnostic with python -m
 if __name__=="__main__":
-	print "Pyro version:",Pyro.constants.VERSION
+	print("Pyro version:",Pyro.constants.VERSION)
 	r=ConfigReader(_defaults)
 	if os.path.exists("Pyro.conf"):
 		r._check("Pyro.conf")
@@ -233,6 +234,6 @@ if __name__=="__main__":
 	x.finalizeConfig_Server(1)
 	items=vars(x).items()
 	items.sort()
-	print "Active configuration settings:"
+	print("Active configuration settings:")
 	for item,value in items:
-		print item+"="+str(value)
+		print(item+"="+str(value))

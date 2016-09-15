@@ -22,6 +22,7 @@ Display the state of live task proxies in a running suite.
 For color terminal ASCII escape codes, see
 http://ascii-table.com/ansi-escape-sequences.php
 """
+from __future__ import print_function
 
 import sys
 if '--use-ssh' in sys.argv[1:]:
@@ -115,9 +116,9 @@ A terminal-based live suite monitor.  Exit with 'Ctrl-C'.""",
                 glbl, task_summaries, fam_summaries = (
                     self.pclient.get_suite_state_summary())
             except SuiteStillInitialisingError as exc:
-                print str(exc)
+                print(str(exc))
             except Exception as exc:
-                print >> sys.stderr, "\033[1;37;41mERROR\033[0m", str(exc)
+                print("\033[1;37;41mERROR\033[0m", str(exc), file=sys.stderr)
                 self.pclient.reset()
             else:
                 states = [t["state"] for t in task_summaries.values() if (
@@ -234,7 +235,7 @@ A terminal-based live suite monitor.  Exit with 'Ctrl-C'.""",
 
                 if not options.once:
                     os.system("clear")
-                print '\n'.join(blit)
+                print('\n'.join(blit))
                 indxs = blitlines.keys()
                 try:
                     int(indxs[1])
@@ -243,7 +244,7 @@ A terminal-based live suite monitor.  Exit with 'Ctrl-C'.""",
                 else:
                     indxs.sort(key=int)
                 for ix in indxs:
-                    print blitlines[ix]
+                    print(blitlines[ix])
 
             if options.once:
                 break

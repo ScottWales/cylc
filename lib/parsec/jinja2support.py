@@ -19,6 +19,7 @@
 
 Importing code should catch ImportError in case Jinja2 is not installed.
 """
+from __future__ import print_function
 
 from glob import glob
 import os
@@ -70,9 +71,9 @@ def jinja2process(flines, dir_, template_vars=None):
     #     # TODO - THIS IS CAUGHT BY VALIDATE BUT NOT BY VIEW COMMAND...
     #     raise TemplateError(exc)
     if cylc.flags.verbose and template_vars:
-        print 'Setting Jinja2 template variables:'
+        print('Setting Jinja2 template variables:')
         for item in sorted(template_vars.items()):
-            print '    + %s=%s' % item
+            print('    + %s=%s' % item)
 
     # CALLERS SHOULD HANDLE JINJA2 TEMPLATESYNTAXERROR AND TEMPLATEERROR
     # AND TYPEERROR (e.g. for not using "|int" filter on number inputs.

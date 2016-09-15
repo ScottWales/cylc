@@ -17,6 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """Task output messages and associated logic."""
+from __future__ import print_function
 
 
 import sys
@@ -100,8 +101,8 @@ class TaskOutputs(object):
         message = self._qualify(msg)
         if message in self.completed or message in self.not_completed:
             # duplicate output messages are an error.
-            print >> sys.stderr, (
-                'WARNING: output already registered: ' + message)
+            print((
+                'WARNING: output already registered: ' + message), file=sys.stderr)
         if not completed:
             self.not_completed[message] = self.owner_id
         else:

@@ -16,6 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """Support automatic deprecation and obsoletion of parsec config items."""
+from __future__ import print_function
+from __future__ import absolute_import
 
 import sys
 if __name__ == '__main__':
@@ -98,7 +100,7 @@ class upgrader(object):
         if '__MANY__' not in upg['old']:
             return [upg]
         if upg['old'].count('__MANY__') > 1:
-            print >> sys.stderr, upg['old']
+            print(upg['old'], file=sys.stderr)
             raise UpgradeError("Multiple simultaneous __MANY__ not supported")
         exp_upgs = []
         pre = []
@@ -171,15 +173,15 @@ class upgrader(object):
                         if upg['cvt'].describe() != "DELETED (OBSOLETE)":
                             self.put_item(upg['new'], upg['cvt'].convert(old))
         if do_warn and cylc.flags.verbose:
-            print >> sys.stderr, (
+            print((
                 "WARNING: deprecated items were automatically upgraded in '" +
-                self.descr + "':")
+                self.descr + "':"), file=sys.stderr)
             for vn, msgs in warnings.items():
                 for m in msgs:
-                    print >> sys.stderr, " * (" + vn + ")", m
+                    print(" * (" + vn + ")", m, file=sys.stderr)
 
 if __name__ == "__main__":
-    from util import printcfg
+    from .util import printcfg
     cylc.flags.verbose = True
 
     cfg = {
@@ -203,7 +205,7 @@ if __name__ == "__main__":
     x2 = converter(lambda x: 2 * x, 'value x 2')
 
     printcfg(cfg)
-    print
+    print()
 
     upg = upgrader(cfg, 'test file')
     # successive upgrades are incremental - at least until I think of a
@@ -222,5 +224,5 @@ if __name__ == "__main__":
 
     upg.upgrade()
 
-    print
+    print()
     printcfg(cfg)

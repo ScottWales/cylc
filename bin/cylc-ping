@@ -20,6 +20,7 @@
 
 If suite REG is running or TASK in suite REG is currently running,
 exit with success status, else exit with error status."""
+from __future__ import print_function
 
 import sys
 if '--use-ssh' in sys.argv[1:]:
@@ -50,7 +51,7 @@ def main():
     if options.print_ports:
         base = GLOBAL_CFG.get(['pyro', 'base port'])
         range = GLOBAL_CFG.get(['pyro', 'maximum number of ports'])
-        print base, '<= port <=', base + range
+        print(base, '<= port <=', base + range)
         sys.exit(0)
 
     suite = args[0]

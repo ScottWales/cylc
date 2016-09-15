@@ -84,7 +84,7 @@ def get_task_host(cfg_item):
         name = match.groups()[0]
         try:
             host = os.environ[name]
-        except KeyError, exc:
+        except KeyError as exc:
             raise HostSelectError(host, "Variable not defined: " + str(exc))
     try:
         if is_remote_host(host):

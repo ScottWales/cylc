@@ -8,10 +8,12 @@
 #############################################################################
 
 from __future__ import with_statement
+from __future__ import print_function
 import sys, os, socket, time, traceback, errno
 import dircache, shutil, SocketServer
 import Pyro.constants, Pyro.core, Pyro.errors, Pyro.protocol, Pyro.util
 from Pyro.util import HostUtil
+from functools import reduce
 if Pyro.util.supports_multithreading():
 	import threading
 
@@ -63,7 +65,7 @@ class NameServerLocator(object):
 					else:
 						for host in (Pyro.protocol.getHostname(), "localhost"):
 							if trace:
-								print "Trying host",host
+								print("Trying host",host)
 							Log.msg('NameServerLocator','Trying host',host)
 							try:
 								result=self.__sendSysCommand(request, host, port, trace, logerrors, Pyro.constants.NSROLE_PRIMARY)
@@ -71,7 +73,7 @@ class NameServerLocator(object):
 								return result
 							except Pyro.errors.ConnectionDeniedError:
 							    raise
-							except (socket.error, Pyro.errors.PyroError),x:
+							except (socket.error, Pyro.errors.PyroError) as x:
 								pass
 						else:
 							raise Pyro.errors.NamingError("could not find NameServer")
@@ -99,7 +101,7 @@ class NameServerLocator(object):
 			if host:
 				# use direct lookup with PYROLOC: mechanism, no broadcast
 				if trace:
-					print 'Locator: contacting Pyro Name Server...'
+					print('Locator: contacting Pyro Name Server...')
 				uri=Pyro.core.PyroURI(host,Pyro.constants.NAMESERVER_NAME,port,'PYROLOC')
 				prox=Pyro.core.getProxyForURI(uri)
 				prox._setIdentification(self.identification)
@@ -116,7 +118,7 @@ class NameServerLocator(object):
 				# jythons older than 2.5 don't have working broadcast
 				msg="Skipping UDP broadcast (older jythons don't support this operation)"
 				if trace:
-					print msg
+					print(msg)
 				raise Pyro.errors.PyroError(msg)
 			if bcaddr:
 				try:
@@ -124,7 +126,7 @@ class NameServerLocator(object):
 				except socket.error:
 					msg="invalid broadcast address '%s'" % bcaddr
 					if trace:
-						print msg
+						print(msg)
 					raise ValueError(msg)
 				destination1 = (bcaddr, port1)
 				destination2 = (bcaddr, port2)
@@ -136,18 +138,18 @@ class NameServerLocator(object):
 				s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 			
 			if trace:
-				print 'Locator: searching Pyro Name Server...'
+				print('Locator: searching Pyro Name Server...')
 			try:
 				bc_retries=Pyro.config.PYRO_BC_RETRIES
 				if bc_retries<0:
-					bc_retries=sys.maxint-1
-				bc_retries = min(sys.maxint-1, bc_retries)
+					bc_retries=sys.maxsize-1
+				bc_retries = min(sys.maxsize-1, bc_retries)
 				for i in xrange(bc_retries+1):
 					# send request to both Pyro NS (if running in paired mode)
 					s.sendto(request, destination1)
 					if destination2!=destination1:
 						s.sendto(request, destination2)
-					timeout=min(sys.maxint,Pyro.config.PYRO_BC_TIMEOUT)
+					timeout=min(sys.maxsize,Pyro.config.PYRO_BC_TIMEOUT)
 					if timeout<0:
 						timeout=None
 					ins,outs,exs = Pyro.protocol.safe_select([s],[],[s],timeout)
@@ -156,14 +158,14 @@ class NameServerLocator(object):
 						reply, fromaddr = s.recvfrom(1000)
 						return reply
 					if trace and i<Pyro.config.PYRO_BC_RETRIES:
-						print 'Locator: retry',i+1
+						print('Locator: retry',i+1)
 			finally:
 				s.close()
-		except socket.error,e:
+		except socket.error as e:
 			if logerrors:
 				Log.error('NameServerLocator','network error:',e)
 			if trace:
-				print 'Locator: network error:',e
+				print('Locator: network error:',e)
 			raise
 		if logerrors:
 			Log.error('NameServerLocator','Name Server not responding to broadcast')
@@ -212,7 +214,7 @@ class NameServerProxy(object):
 				# rebind here, don't do it from inside the remoteInvocation because deadlock will occur
 				self.adapter.bindToURI(self.URI)
 			return self.adapter.remoteInvocation(*args)
-		except Pyro.errors.ProtocolError,x:
+		except Pyro.errors.ProtocolError as x:
 			# The remote invocation failed. Try to find the NS again.
 			Log.warn('NameServerProxy','Name Server communication problem:',x,' URI was:',self.URI)
 			Log.msg('NameServerProxy','trying to find NS again...')
@@ -326,7 +328,7 @@ class NameServer(Pyro.core.ObjBase):
 		if twinProxy:
 			try:
 				Log.msg("NameServer","Initial resync with other NS at",twinProxy.URI.address,"port",twinProxy.URI.port)
-				print "Initial Resync with other NS at",twinProxy.URI.address,"port",twinProxy.URI.port
+				print("Initial Resync with other NS at",twinProxy.URI.address,"port",twinProxy.URI.port)
 				# keep old NS (self) registration
 				oldNSreg=self.resolve(Pyro.constants.NAMESERVER_NAME)
 				proxyForMe=NameServerProxy(self.getProxy().URI,noconnect=1)
@@ -340,9 +342,9 @@ class NameServer(Pyro.core.ObjBase):
 				self.register(Pyro.constants.NAMESERVER_NAME,oldNSreg)
 				self.otherNS=twinProxy
 				Log.msg("NameServer","database sync complete.")
-				print "Database synchronized."
-			except Pyro.errors.NamingError,x:
-				print x
+				print("Database synchronized.")
+			except Pyro.errors.NamingError as x:
+				print(x)
 				raise
 			
 	def _removeTwinNS(self):
@@ -414,7 +416,7 @@ class NameServer(Pyro.core.ObjBase):
 	def _resync(self, twinProxy):
 		if self.role!=Pyro.constants.NSROLE_SINGLE:
 			Log.msg("NameServer","resync requested from NS at",twinProxy.URI.address,"port",twinProxy.URI.port)
-			print "Resync requested from NS at",twinProxy.URI.address,"port",twinProxy.URI.port
+			print("Resync requested from NS at",twinProxy.URI.address,"port",twinProxy.URI.port)
 			self.otherNS=twinProxy
 			with self.lock:
 				return self._getSyncDump()
@@ -445,7 +447,7 @@ class NameServer(Pyro.core.ObjBase):
 		if self.role!=Pyro.constants.NSROLE_SINGLE and self.otherNS:
 			try:
 				self.otherNS._synccall(method, *args)
-			except Exception,x:
+			except Exception as x:
 				Log.warn("NameServer","ignored error in _synccall - but removing other NS",x)
 				self.otherNS=None
 		
@@ -597,11 +599,11 @@ class NameServer(Pyro.core.ObjBase):
 	def publishURI(self, uri, verbose=0):
 		# verbose is not used - always prints the uri.
 		uri=str(uri)
-		print 'URI is:',uri
+		print('URI is:',uri)
 		try:
 			f=open(Pyro.config.PYRO_NS_URIFILE,'w')
 			f.write(uri+'\n'); f.close()
-			print 'URI written to:',Pyro.config.PYRO_NS_URIFILE
+			print('URI written to:',Pyro.config.PYRO_NS_URIFILE)
 			Log.msg('NameServer','URI written to',Pyro.config.PYRO_NS_URIFILE)
 		except:
 			Log.warn('NameServer','Couldn\'t write URI to',Pyro.config.PYRO_NS_URIFILE)
@@ -654,13 +656,13 @@ class NamedTree(NameSpaceNode):
 		self.branches={}
 	def newbranch(self,name):
 		if name in self.branches.keys():
-			raise KeyError,'name already exists'
+			raise KeyError('name already exists')
 		t = NamedTree(name)
 		self.branches[name]=t
 		return t
 	def newleaf(self,name,value=None):
 		if name in self.branches.keys():
-			raise KeyError,'name already exists'
+			raise KeyError('name already exists')
 		l = NameValue(name,value)
 		self.branches[name]=l
 		return l
@@ -668,12 +670,12 @@ class NamedTree(NameSpaceNode):
 		if isinstance(self.branches[name], NameValue):
 			del self.branches[name]
 		else:
-			raise ValueError,'not a leaf'
+			raise ValueError('not a leaf')
 	def cutbranch(self,name):
 		if isinstance(self.branches[name], NamedTree):
 			del self.branches[name]
 		else:
-			raise ValueError,'not a branch'
+			raise ValueError('not a branch')
 	def __getitem__(self,name):
 		return self.branches[name]
 	def list(self):
@@ -721,7 +723,7 @@ class PersistentNameServer(NameServer):
 		# root is not a NamedTree but a directory
 		try:
 			os.mkdir(self.dbroot)
-		except OSError,x:
+		except OSError as x:
 			if x.errno not in (errno.EEXIST, errno.EBUSY):
 				raise
 	def _initdb_2(self):
@@ -757,7 +759,7 @@ class PersistentNameServer(NameServer):
 						self._setSystemMeta(group,smeta)
 					if umeta:
 						self.setMeta(group,umeta)
-				except EnvironmentError,x:
+				except EnvironmentError as x:
 					Log.warn("NameServer","problem creating group",group,x)
 			for name,uri,smeta,umeta in syncdump[1]:
 				try:
@@ -768,7 +770,7 @@ class PersistentNameServer(NameServer):
 						self._setSystemMeta(name,smeta)
 					if umeta:
 						self.setMeta(name,umeta)
-				except Pyro.errors.NamingError,x:
+				except Pyro.errors.NamingError as x:
 					Log.warn("NameServer","problem registering name",name,x)
 			# reset registration of self
 			try:
@@ -778,7 +780,7 @@ class PersistentNameServer(NameServer):
 			self.register(Pyro.constants.NAMESERVER_NAME,oldNSreg)
 			self.otherNS=twinProxy
 			Log.msg("NameServer","database sync complete.")
-			print "Database synchronized."
+			print("Database synchronized.")
 
 	def register(self,name,URI):
 		origname,name=name,self.validateName(name)
@@ -792,7 +794,7 @@ class PersistentNameServer(NameServer):
 				open(fn,'w').write(str(URI)+'\n')
 				self._dosynccall("register",origname,URI)
 				Log.msg('NameServer','registered',name,'with URI',str(URI))
-			except IOError,x:
+			except IOError as x:
 				if x.errno==errno.ENOENT:
 					raise Pyro.errors.NamingError('(parent)group not found')
 				elif x.errno==errno.ENOTDIR:
@@ -808,7 +810,7 @@ class PersistentNameServer(NameServer):
 				os.remove(fn)
 				self._dosynccall("unregister",origname)
 				Log.msg('NameServer','unregistered',name)
-			except OSError,x:
+			except OSError as x:
 				if x.errno==errno.ENOENT:
 					raise Pyro.errors.NamingError('name not found',name)
 				elif x.errno==errno.EISDIR:
@@ -823,7 +825,7 @@ class PersistentNameServer(NameServer):
 		fn = self.translate(name)
 		try:
 			return Pyro.core.PyroURI(open(fn).read())
-		except IOError,x:
+		except IOError as x:
 			if x.errno==errno.ENOENT:
 				raise Pyro.errors.NamingError('name not found',name)
 			elif x.errno==errno.EISDIR:
@@ -850,7 +852,7 @@ class PersistentNameServer(NameServer):
 				os.mkdir(dirnam)
 				self._dosynccall("createGroup",groupname)
 				Log.msg('NameServer','created group',groupname)
-			except OSError,x:
+			except OSError as x:
 				if x.errno in (errno.EEXIST, errno.EBUSY):
 					raise Pyro.errors.NamingError('group already exists',groupname)
 				elif x.errno == errno.ENOENT:
@@ -871,7 +873,7 @@ class PersistentNameServer(NameServer):
 				shutil.rmtree(dirnam)
 				self._dosynccall("deleteGroup",groupname)
 				Log.msg('NameServer','deleted group',groupname)
-			except OSError,x:
+			except OSError as x:
 				if x.errno==errno.ENOENT:
 					raise Pyro.errors.NamingError('group not found',groupname)
 				elif x.errno==errno.ENOTDIR:
@@ -1076,7 +1078,7 @@ class bcRequestHandler(SocketServer.BaseRequestHandler):
 				self.request[1].sendto('Shutdown request denied',self.client_address)
 			else:
 				Log.msg('BroadcastServer','Shutdown received.')
-				print 'BroadcastServer received shutdown request... will shutdown shortly...'
+				print('BroadcastServer received shutdown request... will shutdown shortly...')
 				self.request[1].sendto('Will shut down shortly',self.client_address)
 				self.server.shutdown=1
 		else:
@@ -1153,42 +1155,42 @@ class NameServerStarter(object):
 				except Pyro.errors.PyroError:
 					pass
 				else:
-					print 'The Name Server appears to be already running on this segment.'
-					print '(host:',otherNSuri.address,' port:',otherNSuri.port,')'
+					print('The Name Server appears to be already running on this segment.')
+					print('(host:',otherNSuri.address,' port:',otherNSuri.port,')')
 					if allowmultiple:
-						print 'WARNING: starting another Name Server in the same segment!'
+						print('WARNING: starting another Name Server in the same segment!')
 					elif role[0] in (Pyro.constants.NSROLE_PRIMARY, Pyro.constants.NSROLE_SECONDARY):
 						pass
 					else:
 						msg='Cannot start multiple Name Servers in the same network segment.'
-						print msg
+						print(msg)
 						raise Pyro.errors.NamingError(msg)
 	
 				if role[0]!=Pyro.constants.NSROLE_SINGLE:
-					print "Locating twin NameServer."
+					print("Locating twin NameServer.")
 					# Do this before starting our own daemon, otherwise possible deadlock!
 					# This step is done here to make pretty certain that one of both name
 					# servers finds the other either *now*, or else later on (below).
 					# If we omit this step here, deadlock may occur on the attempt below!
 					otherNS = self.locateTwinNS(role, otherNSuri)
 					if otherNS:
-						print "Found twin NameServer at",otherNS.URI.address,"port",otherNS.URI.port
+						print("Found twin NameServer at",otherNS.URI.address,"port",otherNS.URI.port)
 						role=(role[0], otherNS)
 		
 				Pyro.config.PYRO_BC_RETRIES=retries
 				Pyro.config.PYRO_BC_TIMEOUT=timeout
 			daemon = Pyro.core.Daemon(host=hostname, port=nsport,norange=1)
-		except Pyro.errors.DaemonError,x:
-			print 'The Name Server appears to be already running on this host.'
-			print '(or somebody else occupies our port,',nsport,')'
+		except Pyro.errors.DaemonError as x:
+			print('The Name Server appears to be already running on this host.')
+			print('(or somebody else occupies our port,',nsport,')')
 			if hostname:
-				print 'It could also be that the address \''+hostname+'\' is not correct.'
-			print 'Name Server was not started!'
+				print('It could also be that the address \''+hostname+'\' is not correct.')
+			print('Name Server was not started!')
 			raise
 
 		if self.identification:
 			daemon.setAllowedIdentifications([self.identification])
-			print 'Requiring connection authentication.'
+			print('Requiring connection authentication.')
 		if Guards[0]:
 			daemon.setNewConnectionValidator(Guards[0])
 
@@ -1207,7 +1209,7 @@ class NameServerStarter(object):
 		if nobroadcast:
 			Log.msg('NS daemon','Not starting broadcast server due to config option')
 			if verbose:
-				print "Not starting broadcast server."
+				print("Not starting broadcast server.")
 		else:
 			# Try to start the broadcast server. Binding on the magic "<broadcast>"
 			# address should work, but on some systems (windows) it doesn't.
@@ -1218,7 +1220,7 @@ class NameServerStarter(object):
 			if msg:
 				Log.msg('NS daemon','Not starting broadcast server because of issue with daemon IP address.')
 				if verbose:
-					print "Not starting broadcast server."
+					print("Not starting broadcast server.")
 			else:
 				if bcaddr:
 					broadcastAddresses=[bcaddr]
@@ -1228,12 +1230,12 @@ class NameServerStarter(object):
 					try:
 						self.bcserver = BroadcastServer((bc_bind,bcport),bcRequestHandler,norange=1)
 						break
-					except socket.error,x:
+					except socket.error as x:
 						notStartedError += str(x)+" "
 				if not self.bcserver:
-					print 'Cannot start broadcast server. Is somebody else occupying our broadcast port?'
-					print 'The error(s) were:',notStartedError
-					print '\nName Server was not started!'
+					print('Cannot start broadcast server. Is somebody else occupying our broadcast port?')
+					print('The error(s) were:',notStartedError)
+					print('\nName Server was not started!')
 					raise Pyro.errors.NamingError("cannot start broadcast server")
 		
 				if Guards[1]:
@@ -1243,32 +1245,32 @@ class NameServerStarter(object):
 		if keep:
 			ns.ignoreShutdown=True
 			if verbose:
-				print 'Will ignore shutdown requests.'
+				print('Will ignore shutdown requests.')
 		else:
 			ns.ignoreShutdown=False
 			if verbose:
-				print 'Will accept shutdown requests.'
+				print('Will accept shutdown requests.')
 
-			print 'Name server listening on:',daemon.sock.getsockname()
+			print('Name server listening on:',daemon.sock.getsockname())
 			if self.bcserver:
-				print 'Broadcast server listening on:',self.bcserver.socket.getsockname()
+				print('Broadcast server listening on:',self.bcserver.socket.getsockname())
 			message = daemon.validateHostnameAndIP()
 			if message:
-				print "\nWARNING:",message,"\n"
+				print("\nWARNING:",message,"\n")
 
 		if Guards[0] or Guards[1]:
 			if verbose:
-				print 'Using security plugins:'
+				print('Using security plugins:')
 			if Guards[0]:
 				clazz=Guards[0].__class__
 				if verbose:
-					print '  NS new conn validator =',clazz.__name__,'from', clazz.__module__, ' ['+sys.modules.get(clazz.__module__).__file__+']'
-			elif verbose: print '  default NS new conn validator'
+					print('  NS new conn validator =',clazz.__name__,'from', clazz.__module__, ' ['+sys.modules.get(clazz.__module__).__file__+']')
+			elif verbose: print('  default NS new conn validator')
 			if Guards[1]:
 				clazz=Guards[1].__class__
 				if verbose:
-					print '  BC request validator  =',clazz.__name__,'from', clazz.__module__, ' ['+sys.modules.get(clazz.__module__).__file__+']'
-			elif verbose: print '  default BC request validator'
+					print('  BC request validator  =',clazz.__name__,'from', clazz.__module__, ' ['+sys.modules.get(clazz.__module__).__file__+']')
+			elif verbose: print('  default BC request validator')
 
 		ns.publishURI(NS_URI,verbose)
 
@@ -1278,7 +1280,7 @@ class NameServerStarter(object):
 		if persistent:
 			Log.msg('NS daemon','Persistent mode, database is in',ns.getDBDir())
 			if verbose:
-				print 'Persistent mode, database is in',ns.getDBDir()
+				print('Persistent mode, database is in',ns.getDBDir())
 		Log.msg('NS daemon','Starting on',daemon.hostname,'port', daemon.port)
 		if self.bcserver:
 			Log.msg('NS daemon','Broadcast server on port',bcport)
@@ -1286,10 +1288,10 @@ class NameServerStarter(object):
 			Log.msg('NS daemon','No Broadcast server')
 
 		if role[0]==Pyro.constants.NSROLE_PRIMARY:
-			print "Primary",
+			print("Primary", end=' ')
 		elif role[0]==Pyro.constants.NSROLE_SECONDARY:
-			print "Secondary",
-		print 'Name Server started.'
+			print("Secondary", end=' ')
+		print('Name Server started.')
 
 		# If we run in primary or secondary mode, resynchronize
 		# the NS database with the other name server.
@@ -1298,12 +1300,12 @@ class NameServerStarter(object):
 		if role[0]!=Pyro.constants.NSROLE_SINGLE:
 			if not otherNS:
 				# try again to contact the other name server
-				print "Locating twin NameServer again."
+				print("Locating twin NameServer again.")
 				otherNS = self.locateTwinNS(role, otherNSuri)
 				role=(role[0], otherNS)
 			if otherNS:
 				# finally got it, resync!
-				print "Found twin NameServer at",otherNS.URI.address,"port",otherNS.URI.port
+				print("Found twin NameServer at",otherNS.URI.address,"port",otherNS.URI.port)
 				ns._initialResyncWithTwin(otherNS)
 
 		self.started.set()   # signal that we've started (for external threads)
@@ -1324,7 +1326,7 @@ class NameServerStarter(object):
 					daemon.requestLoop()
 			except KeyboardInterrupt:
 				Log.warn('NS daemon','shutdown on user break signal')
-				print 'Shutting down on user break signal.'
+				print('Shutting down on user break signal.')
 				self.shutdown(ns)
 			except:
 				try:
@@ -1333,14 +1335,14 @@ class NameServerStarter(object):
 					Log.error('NS daemon', 'Unexpected exception, type',exc_type,
 						'\n--- partial traceback of this exception follows:\n',
 						out,'\n--- end of traceback')
-					print '*** Exception occured!!! Partial traceback:'
-					print out
-					print '*** Resuming operations...'
+					print('*** Exception occured!!! Partial traceback:')
+					print(out)
+					print('*** Resuming operations...')
 				finally:	
 					del exc_type, exc_value, exc_trb    # delete frame refs to allow proper GC
 
 			Log.msg('NS daemon','Shut down gracefully.')
-			print 'Name Server gracefully stopped.'
+			print('Name Server gracefully stopped.')
 
 
 	def locateTwinNS(self, role, otherNSuri):
@@ -1368,10 +1370,10 @@ class NameServerStarter(object):
 						otherNS=NameServerLocator(self.identification).getNS(host=None,port=port,trace=0)
 				Log.msg("NameServerStarted","Found twin NS at",otherNS.URI)
 				return otherNS
-			except Pyro.errors.ConnectionDeniedError,x:
+			except Pyro.errors.ConnectionDeniedError as x:
 				raise
-			except Exception,x:
-				print "WARNING: Cannot find twin NS yet: ",x
+			except Exception as x:
+				print("WARNING: Cannot find twin NS yet: ",x)
 				Log.msg("NameServerStarter","Cannot find twin NS yet:",x)
 				return None
 		finally:
@@ -1408,24 +1410,24 @@ def main(argv):
 	Args = Pyro.util.ArgParser()
 	Args.parse(argv,'hkmrvxn:p:b:c:d:s:i:1:2:')
 	if Args.hasOpt('h'):
-		print 'Usage: pyro-ns [-h] [-k] [-m] [-r] [-x] [-n hostname] [-p port] [-b bcport] [-c bcaddr]'
-		print '          [-i identification] [-d [databaselocation]] [-s securitymodule]'
-		print '          [-1 [host:port]] [-2 [host:port]] [-v]'
-		print '  where -p = NS server port (0 for auto)'
-		print '        -n = non-default hostname to bind on'
-		print '        -b = NS broadcast port'
-		print '        -c = NS broadcast address override'
-		print '        -x = do not start a broadcast listener'
-		print '        -m = allow multiple instances in network segment'
-		print '        -r = don\'t attempt to find already existing nameservers'
-		print '        -k = keep running- do not respond to shutdown requests'
-		print '        -d = use persistent database, provide optional storage directory'
-		print '        -s = use given python module with security plugins'
-		print '        -i = specify the required authentication ID'
-		print '        -1 = runs this NS as primary, opt. specify where secondary is'
-		print '        -2 = runs this NS as secondary, opt. specify where primary is'
-		print '        -v = verbose output'
-		print '        -h = print this help'
+		print('Usage: pyro-ns [-h] [-k] [-m] [-r] [-x] [-n hostname] [-p port] [-b bcport] [-c bcaddr]')
+		print('          [-i identification] [-d [databaselocation]] [-s securitymodule]')
+		print('          [-1 [host:port]] [-2 [host:port]] [-v]')
+		print('  where -p = NS server port (0 for auto)')
+		print('        -n = non-default hostname to bind on')
+		print('        -b = NS broadcast port')
+		print('        -c = NS broadcast address override')
+		print('        -x = do not start a broadcast listener')
+		print('        -m = allow multiple instances in network segment')
+		print('        -r = don\'t attempt to find already existing nameservers')
+		print('        -k = keep running- do not respond to shutdown requests')
+		print('        -d = use persistent database, provide optional storage directory')
+		print('        -s = use given python module with security plugins')
+		print('        -i = specify the required authentication ID')
+		print('        -1 = runs this NS as primary, opt. specify where secondary is')
+		print('        -2 = runs this NS as secondary, opt. specify where primary is')
+		print('        -v = verbose output')
+		print('        -h = print this help')
 		raise SystemExit
 	host = Args.getOpt('n',None)
 	port = Args.getOpt('p',None)
@@ -1460,9 +1462,9 @@ def main(argv):
 	try:
 		secmod = __import__(Args.getOpt('s'),locals(),globals())
 		Guards = (secmod.NSGuard(), secmod.BCGuard())
-	except ImportError,x:
-		print 'Error loading security module:',x
-		print '(is it in your python import path?)'
+	except ImportError as x:
+		print('Error loading security module:',x)
+		print('(is it in your python import path?)')
 		raise SystemExit
 	except KeyError:
 		secmod = None
@@ -1470,9 +1472,9 @@ def main(argv):
 
 	Args.printIgnored()
 	if Args.args:
-		print 'Ignored arguments:', ' '.join(Args.args)
+		print('Ignored arguments:', ' '.join(Args.args))
 
-	print '*** Pyro Name Server ***'
+	print('*** Pyro Name Server ***')
 	if ident:
 		starter=NameServerStarter(identification=ident)
 	else:
@@ -1480,7 +1482,7 @@ def main(argv):
 
 	try:
 		starter.start(host,port,bcport,keep,persistent,dbdir,Guards,allowmultiple,dontlookupother,verbose,role=(role,roleArgs),bcaddr=bcaddr,nobroadcast=nobroadcast)
-	except (Pyro.errors.NamingError, Pyro.errors.DaemonError),x:
+	except (Pyro.errors.NamingError, Pyro.errors.DaemonError) as x:
 		# this error has already been printed, just exit.
 		pass
 

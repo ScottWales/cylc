@@ -44,6 +44,7 @@ Reference tests can use any run mode:
  equivalent to the reference run, the test will abort with non-zero exit
  status - so reference tests can be used as automated tests to check
  that changes to cylc have not broken your suites."""
+from __future__ import print_function
 
 import os
 import sys
@@ -51,10 +52,10 @@ import sys
 from cylc.log_diagnosis import LogAnalyser
 
 if len(sys.argv) == 2 and sys.argv[1] == '--help':
-    print __doc__
+    print(__doc__)
     sys.exit(0)
 
-print "\nThis is the cylc check-triggering shutdown event handler"
+print("\nThis is the cylc check-triggering shutdown event handler")
 
 event, suite = sys.argv[1], sys.argv[2]
 
@@ -64,7 +65,7 @@ if event != 'shutdown':
 try:
     log_dir = os.path.expandvars(os.environ['CYLC_SUITE_LOG_DIR'])
     suite_dir = os.path.expandvars(os.environ['CYLC_SUITE_DEF_PATH'])
-except KeyError, x:
+except KeyError as x:
     raise SystemExit(x)
 
 new_log = os.path.join(log_dir, 'log')
@@ -73,8 +74,8 @@ ref_log = os.path.join(suite_dir, 'reference.log')
 try:
     lanal = LogAnalyser(new_log, ref_log)
     lanal.verify_triggering()
-except Exception, x:
-    print >> sys.stderr, x
+except Exception as x:
+    print(x, file=sys.stderr)
     raise SystemExit("ERROR: Triggering check FAILED")
 else:
-    print "Triggering check passed"
+    print("Triggering check passed")

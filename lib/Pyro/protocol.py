@@ -105,12 +105,12 @@ def sock_recvmsg(sock, size, timeout=0):
 			return _recv_msg(sock,size,timeout)
 		except socket.timeout:
 			raise TimeoutError("connection timeout receiving")
-		except socket.error,x:
+		except socket.error as x:
 			if x.args[0] == errno.EINTR or (hasattr(errno, 'WSAEINTR') and x.args[0] == errno.WSAEINTR):
 				# interrupted system call, just retry
 				continue
 			raise ConnectionClosedError('connection lost: %s' % x)
-		except SSLError,x:
+		except SSLError as x:
 			raise ConnectionClosedError('connection lost: %s' % x)
 
 # select the optimal recv() implementation
@@ -286,7 +286,7 @@ class PYROAdapter(object):
 		ver,body,pflags = self.receiveMsg(conn)
 		if ver==self.version and len(body)==self.AUTH_CHALLENGE_SIZE:
 			return body
-		raise ValueError("Received version must be "+`self.version`+" and auth challenge must be exactly "+`self.AUTH_CHALLENGE_SIZE`+" bytes")
+		raise ValueError("Received version must be "+repr(self.version)+" and auth challenge must be exactly "+repr(self.AUTH_CHALLENGE_SIZE)+" bytes")
 	def setNewConnectionValidator(self,validator):
 		if not isinstance(validator, DefaultConnValidator):
 			raise TypeError("validator must be specialization of DefaultConnValidator")
@@ -307,7 +307,7 @@ class PYROAdapter(object):
 				# receive the authentication challenge string, and use that to build the actual identification string.
 				try:
 					authChallenge=self.recvAuthChallenge(conn)
-				except ProtocolError,x:
+				except ProtocolError as x:
 					# check if we were denied
 					if hasattr(x,"partialMsg") and x.partialMsg[:len(self.denyMSG)]==self.denyMSG:
 						raise ConnectionDeniedError(Pyro.constants.deniedReasons[int(x.partialMsg[-1])])
@@ -359,7 +359,7 @@ class PYROAdapter(object):
 			return self.conn.connected
 		return 0	
 
-	def rebindURI(self, tries=sys.maxint, wait=1):
+	def rebindURI(self, tries=sys.maxsize, wait=1):
 		t=0
 		while t<tries:
 			try:
@@ -429,7 +429,7 @@ class PYROAdapter(object):
 				path += '.' + m
 				# use already loaded modules instead of overwriting them
 				real_path = path[1:]
-				if sys.modules.has_key(real_path):
+				if real_path in sys.modules:
 					mod = sys.modules[real_path]
 				else:
 					setattr(mod, m, new.module(real_path))
@@ -455,7 +455,7 @@ class PYROAdapter(object):
 					imp.release_lock()
 	 
 					try:
-						exec code in mod.__dict__
+						exec(code, mod.__dict__)
 						loaded = 1
 					except ImportError:
 						mname = importer.name
@@ -582,7 +582,7 @@ class PYROAdapter(object):
 			mname=errorinfo.modulename
 			# not used: fromlist=errorinfo.fromlist
 			try:
-				exec 'import '+mname in importmodule.__dict__
+				exec('import '+mname, importmodule.__dict__)
 			except ImportError:
 				Log.error('PYROAdapter','Server wanted a non-existing module:',mname)
 				raise PyroError('Server wanted a non-existing module',mname)
@@ -660,7 +660,7 @@ class PYROAdapter(object):
 					# Is this really a server error? We now throw an exception on the server...
 					raise ProtocolError('compression not supported')
 			return ver,body,pflags
-		except (socket.error, ProtocolError, KeyboardInterrupt),x:
+		except (socket.error, ProtocolError, KeyboardInterrupt) as x:
 			# Communication error during read. To avoid corrupt transfers, we close the connection.
 			# Otherwise we might receive the previous reply as a result of a new methodcall! 
 			# Special case for keyboardinterrupt: people pressing ^C to abort the client
@@ -715,7 +715,7 @@ class PYROAdapter(object):
 				# sanity check failed
 				raise ProtocolError("invalid request data format")
 
-		except ImportError,x:
+		except ImportError as x:
 			if Pyro.config.PYRO_MOBILE_CODE:
 				# return a special exception that will be processed by client;
 				# it will call the internal 'remote_supply_code' member
@@ -734,7 +734,7 @@ class PYROAdapter(object):
 		try:
 			# find the object in the implementation database of our daemon
 			o=daemon.getLocalObject(req[0])
-		except (KeyError, TypeError) ,x:
+		except (KeyError, TypeError) as x:
 			Log.warn('PYROAdapter','Invocation to unknown object ignored:',x)
 			self.returnException(conn, ProtocolError('unknown object ID'))
 			return
@@ -784,7 +784,7 @@ class PYROAdapter(object):
 				replyflags=0
 				body=pickle.dumps(res,Pyro.config.PYRO_PICKLE_FORMAT)
 			sock_sendmsg(conn.sock, self.createMsg(body,replyflags),self.timeout)
-		except ImportError,ix:
+		except ImportError as ix:
 			if Pyro.config.PYRO_MOBILE_CODE:
 				# Return a special exception that will be processed by client;
 				# it will call the internal 'remote_supply_code' member.
@@ -816,7 +816,7 @@ class PYROAdapter(object):
 			pic=pickle
 		try:
 			body=pic.dumps(PyroExceptionCapsule(exc,args),Pyro.config.PYRO_PICKLE_FORMAT)
-		except Exception,x:
+		except Exception as x:
 			# hmm, pickling the exception failed... pickle the string instead
 			body=pic.dumps(PyroExceptionCapsule(PyroError(str(x)),args),Pyro.config.PYRO_PICKLE_FORMAT)
 		sock_sendmsg(conn.sock, self.createMsg(body),self.timeout)
@@ -832,7 +832,7 @@ class PYROAdapter(object):
 			if ok:
 				challenge=tcpserver.newConnValidator.createAuthChallenge(tcpserver,conn)
 				if len(challenge)!=self.AUTH_CHALLENGE_SIZE:
-					raise ValueError("Auth challenge must be exactly "+`self.AUTH_CHALLENGE_SIZE`+" bytes")
+					raise ValueError("Auth challenge must be exactly "+repr(self.AUTH_CHALLENGE_SIZE)+" bytes")
 				sock_sendmsg(conn.sock, self.createMsg(challenge),self.timeout)
 				ver,body,pflags = self.receiveMsg(conn)
 				# only process the message if it makes a bit of sense
@@ -1002,7 +1002,7 @@ class DefaultConnValidator(object):
 		return md5(ident).digest()
 	def setAllowedIdentifications(self, ids):
 		if ids is not None:
-			if type(ids) in (types.TupleType, types.ListType):
+			if type(ids) in (tuple, list):
 				self.allowedIDs=map(self.mungeIdent, ids)  # don't store ids themselves
 			else:
 				raise TypeError("ids must be a list")
@@ -1082,7 +1082,7 @@ class TCPServer(object):
 			self.mustShutdown=0  # global shutdown
 			self.localStorage=LocalStorage()  # TLS for systems that don't have threads
 			return		
-		except socket.error,msg:
+		except socket.error as msg:
 			raise ProtocolError(msg)
 		Log.msg('TCPServer','initialized')
 			
@@ -1179,7 +1179,7 @@ class TCPServer(object):
 					csock, addr = self.sock.accept()
 					#if not Pyro.config.PYROSSL_POSTCONNCHECK:
 					#	csock.postConnectionCheck=None
-				except SSL.SSLError,error:
+				except SSL.SSLError as error:
 					Log.warn('TCPServer','SSL error: '+str(error))
 					return
 			else:
@@ -1224,7 +1224,7 @@ class TCPServer(object):
 					csock, addr = self.sock.accept()
 					#if not Pyro.config.PYROSSL_POSTCONNCHECK:
 					#	csock.postConnectionCheck=None
-				except SSL.SSLError,error:
+				except SSL.SSLError as error:
 					Log.warn('TCPServer','SSL error: '+str(error))
 					return
 			else:
@@ -1258,9 +1258,9 @@ class TCPServer(object):
 		self.mustShutdown=1
 
 	def getAdapter(self):
-		raise NotImplementedError,'must be overridden to return protocol adapter'
+		raise NotImplementedError('must be overridden to return protocol adapter')
 	def handleError(self,conn,onewaycall=False):
-		raise NotImplementedError,'must be overridden'
+		raise NotImplementedError('must be overridden')
 
 	def getServerSockets(self):
 		if self.threaded:
@@ -1284,7 +1284,7 @@ def safe_select(r,w,e,timeout=None):
 				return _selectfunction(r,w,e,delay)
 			else:
 				return _selectfunction(r,w,e)
-		except select.error,x:
+		except select.error as x:
 			if x.args[0] == errno.EINTR or (hasattr(errno, 'WSAEINTR') and x.args[0] == errno.WSAEINTR):
 				delay=max(0.0,time.time()-start)
 			else:

@@ -27,6 +27,7 @@ For single tasks you can use "--edit" to edit the generated job script before
 it submits, to apply one-off changes. A diff between the original and edited
 job script will be saved to the task job log directory.
 """
+from __future__ import print_function
 
 import sys
 
@@ -169,7 +170,7 @@ def main():
         # Don't allow force-no-prompt in this case.
         if options.geditor:
             # Alert stdout of the dialog window, in case it's missed.
-            print "Editing done. I'm popping up a confirmation dialog now."
+            print("Editing done. I'm popping up a confirmation dialog now.")
 
         # Save a diff to record the changes made.
         log_dir = os.path.dirname(jobfile_path)
@@ -190,7 +191,7 @@ def main():
                 lf = os.path.join(log_dir, log)
                 with open(lf, 'wb') as log_file:
                     log_file.write("This edit run was aborted\n")
-                    print "Run aborted."
+                    print("Run aborted.")
                     sys.exit(0)
 
     # Trigger the task proxy(s).

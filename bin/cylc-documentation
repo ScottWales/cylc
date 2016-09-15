@@ -31,6 +31,7 @@ in the suite definition.
 
 Arguments:
    [TARGET]    File, URL, or suite name"""
+from __future__ import print_function
 
 import sys
 for arg in sys.argv[1:]:
@@ -111,15 +112,15 @@ def main():
                 target = intranet_url
             else:
                 # Open in file:// mode as a last resort.
-                print >> sys.stderr, ("WARNING: cylc intranet URL not "
-                                      "defined, trying file mode.")
+                print(("WARNING: cylc intranet URL not "
+                                      "defined, trying file mode."), file=sys.stderr)
                 target = html_file
 
     elif len(args) == 1:
         # Suite or task documentation.
         if options.pdf or options.www:
-            print >> sys.stderr, (
-                "(Note: --pdf and --www are ignored for suite documentation).")
+            print((
+                "(Note: --pdf and --www are ignored for suite documentation)."), file=sys.stderr)
         suite = args[0]
         if options.task_name:
             # Task documentation.
@@ -152,12 +153,12 @@ def main():
     command_list = re.split(' ', command)
 
     if options.stdout:
-        print target
+        print(target)
         sys.exit(0)
 
     retcode = subprocess.call(command_list)
     if retcode != 0:
-        print >> sys.stderr, 'ERROR, command failed: %s' % command
+        print('ERROR, command failed: %s' % command, file=sys.stderr)
     sys.exit(retcode)
 
 

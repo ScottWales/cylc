@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """Simple suite name registration database."""
+from __future__ import print_function
 
 import os
 import random
@@ -117,7 +118,7 @@ class RegistrationDB(object):
             path, self.PASSPHRASE_FILE_BASE)
         os.rename(handle.name, passphrase_file_name)
         if cylc.flags.verbose:
-            print 'Generated suite passphrase: %s' % passphrase_file_name
+            print('Generated suite passphrase: %s' % passphrase_file_name)
 
     def dump_suite_data(self, suite, data):
         """Dump suite path and title in text file."""
@@ -279,9 +280,9 @@ class RegistrationDB(object):
             return passphrase
 
         if passphrase is None and cylc.flags.debug:
-            print >> sys.stderr, (
+            print((
                 'ERROR: passphrase for suite %s not found for %s@%s' % (
-                    suite, owner, host))
+                    suite, owner, host)), file=sys.stderr)
 
     @classmethod
     def load_passphrase_from_dir(cls, path):
@@ -336,7 +337,7 @@ class RegistrationDB(object):
                 passphrase = line.replace(prefix, '').strip()
         if not passphrase or ret_code:
             if cylc.flags.debug:
-                print >> sys.stderr, (
+                print((
                     'ERROR: %(command)s # code=%(ret_code)s\n%(err)s\n'
                 ) % {
                     'command': command,
@@ -344,7 +345,7 @@ class RegistrationDB(object):
                     # 'out': out,
                     'err': err,
                     'ret_code': ret_code,
-                }
+                }, file=sys.stderr)
             return
         return passphrase
 
@@ -371,7 +372,7 @@ class RegistrationDB(object):
             path = os.path.join(os.environ['PWD'], path)
         title = self.get_suite_title(name, path=path)
         title = title.split('\n')[0]  # use the first of multiple lines
-        print 'REGISTER', name + ':', path
+        print('REGISTER', name + ':', path)
         self.dump_suite_data(name, {'path': path, 'title': title})
 
         # Create a new passphrase for the suite if necessary
@@ -396,10 +397,10 @@ class RegistrationDB(object):
             try:
                 key, val = line.split('=')
             except ValueError:
-                print >> sys.stderr, (
+                print((
                     'ERROR: failed to parse line ' + str(count) + ' from ' +
-                    fpath + ':')
-                print >> sys.stderr, '  ', line
+                    fpath + ':'), file=sys.stderr)
+                print('  ', line, file=sys.stderr)
                 continue
             data[key] = val
         if 'title' not in data or 'path' not in data:
@@ -431,7 +432,7 @@ class RegistrationDB(object):
             try:
                 data = self.get_suite_data(suite)
             except RegistrationError as exc:
-                print >> sys.stderr, str(exc)
+                print(str(exc), file=sys.stderr)
             else:
                 path, title = data['path'], data['title']
                 res.append([suite, path, title])
@@ -451,8 +452,8 @@ class RegistrationDB(object):
                 continue
             if os.path.exists(os.path.join(ports_d, name)):
                 skipped_set.add((name, data['path']))
-                print >> sys.stderr, (
-                    'SKIP UNREGISTER %s: port file exists' % (name))
+                print((
+                    'SKIP UNREGISTER %s: port file exists' % (name)), file=sys.stderr)
                 continue
             for base_name in ['passphrase', 'suite.rc.processed']:
                 try:
@@ -460,7 +461,7 @@ class RegistrationDB(object):
                 except OSError:
                     pass
             unregistered_set.add((name, data['path']))
-            print 'UNREGISTER %s:%s' % (name, data['path'])
+            print('UNREGISTER %s:%s' % (name, data['path']))
             os.unlink(os.path.join(self.dbpath, name))
         return unregistered_set, skipped_set
 
@@ -527,12 +528,12 @@ class RegistrationDB(object):
         new_title = self.get_suite_title(suite)
         if data['title'] == new_title:
             if cylc.flags.verbose:
-                print 'unchanged:', suite
+                print('unchanged:', suite)
             changed = False
         else:
-            print 'RETITLED:', suite
-            print '   old title:', data['title']
-            print '   new title:', new_title
+            print('RETITLED:', suite)
+            print('   old title:', data['title'])
+            print('   new title:', new_title)
             changed = True
             data['title'] = new_title
             self.dump_suite_data(suite, data)

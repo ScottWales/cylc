@@ -8,11 +8,13 @@
 #############################################################################
 
 from __future__ import with_statement
+from __future__ import print_function
 import os, sys, traceback
 import time, random, linecache
 import socket, binascii
 import Pyro.constants
 from Pyro.util2 import *	# bring in 'missing' util functions
+from functools import reduce
 
 
 # bogus lock class, for systems that don't have threads.
@@ -119,7 +121,7 @@ if Pyro.config.PYRO_STDLOGGING:
 		open(cfgfile).close()
 		logging.config.fileConfig(cfgfile)
 		externalConfig=1
-	except IOError,x:
+	except IOError as x:
 		# Config file couldn't be read! Use builtin config.
 		# First make the logfiles absolute paths:
 		if not os.path.isabs(Pyro.config.PYRO_LOGFILE):
@@ -165,9 +167,9 @@ if Pyro.config.PYRO_STDLOGGING:
 		def raw(self,ztr):
 			self.logger.log(999,ztr.rstrip())
 		def _logfile(self):
-			raise NotImplementedError,'must override'
+			raise NotImplementedError('must override')
 		def _getlevel(self):
-			raise NotImplementedError,'must override'
+			raise NotImplementedError('must override')
 
 
 	class SystemLogger(LoggerBase):
@@ -221,12 +223,12 @@ else:
 					tf.write(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))+
 					  pidinfo+'** '+typ+' ** '+str(source)+' ** '+reduce(lambda x,y: str(x)+' '+str(y),arglist)+'\n')
 					tf.close()
-				except Exception,x:
+				except Exception as x:
 					pass
 		def _logfile(self):
-			raise NotImplementedError,'must override'
+			raise NotImplementedError('must override')
 		def _checkTraceLevel(self,level):
-			raise NotImplementedError,'must override'
+			raise NotImplementedError('must override')
 	
 	class SystemLogger(LoggerBase):
 		def _checkTraceLevel(self, level):
@@ -267,7 +269,7 @@ class DirLister(object):
 			except KeyError:
 				cached_mtime, files, directories = -1, [], []
 		mtime = os.stat(path)[8]
-		if mtime <> cached_mtime:
+		if mtime != cached_mtime:
 			files=[]
 			directories=[]
 			for e in os.listdir(path):
@@ -324,7 +326,7 @@ class ArgParser(object):
 			else:   # arg is no option, add it to the residu list and continue
 				self.args.append(arg)
 	def hasOpt(self, option):
-		return self.options.has_key(option)
+		return option in self.options
 	def getOpt(self, option, default=Exception()):
 		try:
 			return self.options[option]
@@ -334,10 +336,10 @@ class ArgParser(object):
 			raise KeyError('no such option')
 	def printIgnored(self):
 		if self.ignored:
-			print 'Ignored options:',
+			print('Ignored options:', end=' ')
 			for o in self.ignored:
-				print '-'+o,
-			print
+				print('-'+o, end=' ')
+			print()
 
 
 _getGUID_counter=0		# extra safeguard against double numbers
@@ -397,21 +399,21 @@ else:
 			global _getGUID_counter
 			t1=time.time()*100 +_getGUID_counter
 			_getGUID_counter+=1 
-		t2=int((t1*time.clock())%sys.maxint) & 0xffffff
-		t1=int(t1%sys.maxint) 
+		t2=int((t1*time.clock())%sys.maxsize) & 0xffffff
+		t1=int(t1%sys.maxsize) 
 		timestamp = (long(t1) << 24) | t2 
-		r2=(random.randint(0,sys.maxint//2)>>4) & 0xffff
-		r3=(random.randint(0,sys.maxint//2)>>5) & 0xff
+		r2=(random.randint(0,sys.maxsize//2)>>4) & 0xffff
+		r3=(random.randint(0,sys.maxsize//2)>>5) & 0xff
 		return networkAddrStr+'%014x%06x' % (timestamp, (r2<<8)|r3 )
 
 def genguid_scripthelper(argv):
 	p=ArgParser()
 	p.parse(argv,'')
 	if p.args or p.ignored:
-		print 'Usage: genguid  (no arguments)'
-		print 'This tool generates Pyro UIDs.'
+		print('Usage: genguid  (no arguments)')
+		print('This tool generates Pyro UIDs.')
 		raise SystemExit
-	print getGUID()
+	print(getGUID())
 
 
 
@@ -551,7 +553,7 @@ def formatTraceback(ex_type=None, ex_value=None, tb=None):
 					# Get items
 					flocals = frame.f_locals.items()[:]
 	 
-					line_num = lines.next()
+					line_num = next(lines)
 					filename = frame.f_code.co_filename
 	 
 					name = None

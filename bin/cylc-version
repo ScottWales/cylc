@@ -26,6 +26,7 @@ standard --host and --user options, etc.
 
 For the cylc version of running a suite daemon see
   "cylc get-suite-version"."""
+from __future__ import print_function
 
 import sys
 import os
@@ -47,9 +48,9 @@ def main():
         action="store_true", dest="long_version", default=False)
     (options, args) = parser.parse_args()
     if options.long_version:
-        print "%s (%s)" % (CYLC_VERSION, os.environ["CYLC_DIR"])
+        print("%s (%s)" % (CYLC_VERSION, os.environ["CYLC_DIR"]))
     else:
-        print CYLC_VERSION
+        print(CYLC_VERSION)
 
 
 if __name__ == "__main__":

@@ -64,6 +64,7 @@ EXAMPLES (using the three suites above):
 % cylc db pr "^orange"
   orange.qux | "Test Suite Two" | /home/bob/orange/qux
   orange.baz | "Test Suite One" | /home/bob/orange/baz"""
+from __future__ import print_function
 
 import sys
 from cylc.remote import remrun
@@ -117,7 +118,7 @@ def main():
         tdir = os.path.abspath(tdir)
         mkdir_p(os.path.dirname(tdir))
 
-        print 'COPY', fdir, '\n  TO', tdir
+        print('COPY', fdir, '\n  TO', tdir)
         shutil.copytree(fdir, tdir)
         db.register(treg, tdir)
 

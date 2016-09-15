@@ -25,6 +25,7 @@ The first-parent inheritance graph determines the primary task family
 groupings that are collapsible in gcylc suite views and the graph
 viewer tool. To visualize the full multiple inheritance hierarchy use:
   'cylc graph -n'."""
+from __future__ import print_function
 
 import os
 import sys
@@ -104,7 +105,7 @@ def main():
 
     if options.tree:
         if os.environ['LANG'] == 'C' and options.box:
-            print >> sys.stderr, "WARNING, ignoring -t/--tree: $LANG=C"
+            print("WARNING, ignoring -t/--tree: $LANG=C", file=sys.stderr)
             options.tree = False
 
     if options.titles and options.mro:
@@ -112,7 +113,7 @@ def main():
 
     if options.tree and any(
             [options.all_tasks, options.all_namespaces, options.mro]):
-        print >> sys.stderr, "WARNING: -t chosen, ignoring non-tree options."
+        print("WARNING: -t chosen, ignoring non-tree options.", file=sys.stderr)
 
     config = SuiteConfig(
         suite, suiterc,
@@ -124,7 +125,7 @@ def main():
         node_labels = config.get_node_labels(tr_start, tr_stop)
         node_labels.sort()
         for nl in node_labels:
-            print nl
+            print(nl)
     else:
         result = config.get_namespace_list(which)
         namespaces = result.keys()
@@ -140,15 +141,15 @@ def main():
 
         for ns in namespaces:
             if options.mro:
-                print ns, padding[0:len(padding) - len(ns)],
+                print(ns, padding[0:len(padding) - len(ns)], end=' ')
                 for i in config.get_mro(ns):
-                    print i,
-                print
+                    print(i, end=' ')
+                print()
             elif options.titles:
-                print ns, padding[0:len(padding) - len(ns)],
-                print result[ns]
+                print(ns, padding[0:len(padding) - len(ns)], end=' ')
+                print(result[ns])
             else:
-                print ns
+                print(ns)
 
 
 if __name__ == "__main__":

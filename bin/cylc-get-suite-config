@@ -50,6 +50,7 @@ $ cylc get-suite-config --item=[runtime][modelX] SUITE
     FOO = foo
     BAR = bar
 ..."""
+from __future__ import print_function
 
 import sys
 from cylc.remote import remrun
@@ -123,11 +124,11 @@ def main():
         owner=owner)
     if options.tasks:
         for task in config.get_task_name_list():
-            print prefix + task
+            print(prefix + task)
     elif options.alltasks:
         for task in config.get_task_name_list():
             items = ['[runtime][' + task + ']' + i for i in options.item]
-            print prefix + task,
+            print(prefix + task, end=' ')
             config.pcfg.idump(
                 items, options.sparse, options.pnative, prefix,
                 options.oneline, none_str=options.none_str)

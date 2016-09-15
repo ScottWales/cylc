@@ -60,6 +60,7 @@ GRAPH VIEWER CONTROLS:
     * "group" - close this node's parent family.
     * "ungroup" - open this family node.
     * "recursive ungroup" - ungroup all families below this node."""
+from __future__ import print_function
 
 import sys
 import StringIO
@@ -77,7 +78,7 @@ try:
         MyDotWindow, MyDotWindow2, get_reference_from_plain_format)
 except ImportError as exc:
     # Allow command help generation without a graphical environment.
-    print >> sys.stderr, 'WARNING: no X environment? %s' % exc
+    print('WARNING: no X environment? %s' % exc, file=sys.stderr)
 
 if remrun().execute():
     sys.exit(0)

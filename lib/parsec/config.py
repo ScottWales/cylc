@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import print_function
 import re
 from parsec import ParsecError
 from parsec.fileparse import parse
@@ -108,7 +109,7 @@ class config(object):
         for key in keys:
             try:
                 cfg = cfg[key]
-            except KeyError, x:
+            except KeyError as x:
                 raise ItemNotFoundError(itemstr(parents, key))
             else:
                 parents.append(key)
@@ -145,7 +146,7 @@ class config(object):
                     item = none_str or "None"
                 items.append(str(item))
             # TODO - quote items if they contain spaces or comment delimiters?
-            print prefix + ' '.join(items)
+            print(prefix + ' '.join(items))
         else:
             for keys in mkeys:
                 self.dump(keys, sparse, pnative, prefix, none_str)
@@ -154,6 +155,6 @@ class config(object):
              none_str=''):
         cfg = self.get(keys, sparse)
         if pnative:
-            print cfg
+            print(cfg)
         else:
             printcfg(cfg, prefix=prefix, level=len(keys), none_str=none_str)

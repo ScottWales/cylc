@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import print_function
 import re
 
 # Recursively pretty-print a nested dict as a tree
@@ -64,18 +65,18 @@ def print_tree(tree, padding, use_unicode=False, prefix='', labels=None,
         result = pp + item
         line = result + ' ' + padding[len(result):]
         if isinstance(tree[item], dict):
-            print line
+            print(line)
             print_tree(tree[item], padding, use_unicode, pprefix, labels, eq)
         else:
             if labels:
                 if item in labels:
                     tf, reason = labels[item]
-                    print line, '...', reason
+                    print(line, '...', reason)
                 else:
-                    print line
+                    print(line)
             else:
                 if eq:
                     joiner = '= '
                 else:
                     joiner = ''
-                print line + joiner + str(tree[item])
+                print(line + joiner + str(tree[item]))

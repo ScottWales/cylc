@@ -28,6 +28,7 @@ not present in the graph, the given cycle point is assumed to be valid.
 
 WARNING: do not 'cylc submit' a task that is running in its suite at the
 same time - both instances will attempt to write to the same job logs."""
+from __future__ import print_function
 
 import sys
 from cylc.remote import remrun
@@ -174,8 +175,8 @@ def main():
 
     if options.dry_run:
         itask.prep_submit(dry_run=True)
-        print "JOB SCRIPT=%s" % itask.get_job_log_path(
-            itask.HEAD_MODE_LOCAL, tail=itask.JOB_FILE_BASE)
+        print("JOB SCRIPT=%s" % itask.get_job_log_path(
+            itask.HEAD_MODE_LOCAL, tail=itask.JOB_FILE_BASE))
     else:
         if itask.prep_submit() is None:
             sys.exit(1)
@@ -185,7 +186,7 @@ def main():
         proc_pool.close()
         proc_pool.join()
         if itask.summary['submit_method_id'] is not None:
-            print 'Job ID:', itask.summary['submit_method_id']
+            print('Job ID:', itask.summary['submit_method_id'])
 
     sys.exit(itask.state.status == TASK_STATUS_SUBMIT_FAILED)
 

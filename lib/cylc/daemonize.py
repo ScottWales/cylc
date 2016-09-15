@@ -60,7 +60,7 @@ def daemonize(server):
         if pid > 0:
             # exit first parent
             sys.exit(0)
-    except OSError, exc:
+    except OSError as exc:
         sys.stderr.write(
             "fork #1 failed: %d (%s)\n" % (exc.errno, exc.strerror))
         sys.exit(1)
@@ -82,13 +82,13 @@ def daemonize(server):
                 "pid": pid,
                 "logd": os.path.dirname(sout.get_path())})
             sys.exit(0)
-    except OSError, exc:
+    except OSError as exc:
         sys.stderr.write(
             "fork #2 failed: %d (%s)\n" % (exc.errno, exc.strerror))
         sys.exit(1)
 
     # reset umask, octal
-    os.umask(022)
+    os.umask(0o22)
 
     # redirect output to the suite log files
     sout.redirect()

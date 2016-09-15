@@ -8,6 +8,7 @@
 #############################################################################
 
 from __future__ import with_statement
+from __future__ import print_function
 import sys, time, re, os, weakref
 import imp, marshal, new, socket
 from pickle import PicklingError
@@ -92,7 +93,7 @@ class ObjBase(object):
 		if flags & Pyro.constants.RIF_Varargs:
 			# reconstruct the varargs from a tuple like (a,b,(va1,va2,va3...))
 			args=args[:-1]+args[-1]
-		if keywords and type(keywords.iterkeys().next()) is unicode and sys.platform!="cli":
+		if keywords and type(next(keywords.iterkeys())) is unicode and sys.platform!="cli":
 			# IronPython sends all strings as unicode, but apply() doesn't grok unicode keywords.
 			# So we need to rebuild the keywords dict with str keys... 
 			keywords = dict([(str(k),v) for k,v in keywords.iteritems()])
@@ -159,14 +160,14 @@ class ObjBase(object):
 					path+='.'+m
 					# use already loaded modules instead of overwriting them
 					real_path = path[1:]
-					if sys.modules.has_key(real_path):
+					if real_path in sys.modules:
 						mod = sys.modules[real_path]
 					else:
 						setattr(mod,m,new.module(path[1:]))
 						mod=getattr(mod,m)
 						sys.modules[path[1:]]=mod
 				# execute the module code in the right module.
-				exec code in mod.__dict__
+				exec(code, mod.__dict__)
 				# store the bytecode for possible later reference if we need to pass it on
 				mod.__dict__['_PYRO_bytecode'] = module
 			finally:
@@ -184,7 +185,7 @@ class ObjBase(object):
 			try:
 				importmodule=new.module("pyro-server-import")
 				try:
-					exec "import " + name in importmodule.__dict__
+					exec("import " + name, importmodule.__dict__)
 				except ImportError:
 					Log.error("ObjBase","Client wanted a non-existing module:", name)
 					raise PyroError("Client wanted a non-existing module", name)
@@ -228,7 +229,7 @@ class CallbackObjBase(ObjBase):
 	def Pyro_dyncall(self, method, flags, args):
 		try:
 			return ObjBase.Pyro_dyncall(self,method,flags,args)
-		except Exception,x:
+		except Exception as x:
 			# catch all errors
 			Log.warn('CallbackObjBase','Exception in callback object: ',x)
 			raise PyroExceptionCapsule(x,str(x))
@@ -570,7 +571,7 @@ class Daemon(Pyro.protocol.TCPServer, ObjBase):
 				self.adapter = Pyro.protocol.getProtocolAdapter(prtcol)
 				self.validateHostnameAndIP()  # ignore any result message... it's in the log already.
 				return
-			except ProtocolError,msg:
+			except ProtocolError as msg:
 				errormsg=msg
 				self.port+=1
 		Log.error('Daemon','Couldn\'t start Pyro daemon: ' +str(errormsg))
@@ -595,7 +596,7 @@ class Daemon(Pyro.protocol.TCPServer, ObjBase):
 						if name:
 							try:
 								self.NameServer.unregister(name)
-							except Exception,x:
+							except Exception as x:
 								Log.warn('Daemon','Error while unregistering object during shutdown:',x)
 				self.implementations={}
 
@@ -821,7 +822,7 @@ def _initGeneric_pre():
 		out='\n'+'-'*60+' NEW SESSION\n'+time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))+ \
 			'   Pyro Initializing, version '+Pyro.constants.VERSION+'\n'
 		Log.raw(out)
-	except IOError,e:
+	except IOError as e:
 		sys.stderr.write('PYRO: Can\'t write the tracefile '+Pyro.config.PYRO_LOGFILE+'\n'+str(e))
 
 def _initGeneric_post():
@@ -849,7 +850,7 @@ def initClient(banner=0):
 	Pyro.config.finalizeConfig_Client()
 	_initGeneric_post()
 	if banner:
-		print 'Pyro Client Initialized. Using Pyro V'+Pyro.constants.VERSION
+		print('Pyro Client Initialized. Using Pyro V'+Pyro.constants.VERSION)
 	_init_client_done=1
 	
 def initServer(banner=0, storageCheck=1):
@@ -860,9 +861,9 @@ def initServer(banner=0, storageCheck=1):
 	Pyro.config.finalizeConfig_Server(storageCheck=storageCheck)
 	_initGeneric_post()
 	if banner:
-		print 'Pyro Server Initialized. Using Pyro V'+Pyro.constants.VERSION
+		print('Pyro Server Initialized. Using Pyro V'+Pyro.constants.VERSION)
 	_init_server_done=1
 
 
 if __name__=="__main__":
-	print "Pyro version:",Pyro.constants.VERSION
+	print("Pyro version:",Pyro.constants.VERSION)

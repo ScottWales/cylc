@@ -30,6 +30,7 @@ it does not search the data structure that results from parsing the
 suite definition - so it will not report implicit default settings.
 
 For case insenstive matching use '(?i)PATTERN'."""
+from __future__ import print_function
 
 import sys
 from cylc.remote import remrun
@@ -56,7 +57,7 @@ def section_level(heading):
 
 
 def print_heading(heading):
-    print '>>>' + '->'.join(heading)
+    print('>>>' + '->'.join(heading))
 
 parser = COP(
     __doc__, prep=True,
@@ -137,16 +138,16 @@ for line in lines:
 
         if curr_file != prev_file:
             prev_file = curr_file
-            print "\nFILE:", curr_file
+            print("\nFILE:", curr_file)
 
         # Print the nested section headings
         section_key = '->'.join(sections)
         if section_key != prev_section_key:
             prev_section_key = section_key
-            print '   SECTION:', section_key
+            print('   SECTION:', section_key)
 
         # Print the pattern match, with line number
-        print '      (' + str(line_no) + '):', line.rstrip('\n')
+        print('      (' + str(line_no) + '):', line.rstrip('\n'))
 
 if not options.search_bin:
     sys.exit(0)
@@ -154,7 +155,7 @@ if not options.search_bin:
 # search files in suite bin directory
 bin = os.path.join(suitedir, 'bin')
 if not os.path.isdir(bin):
-    print >> sys.stderr, "\nSuite " + suite + " has no bin directory"
+    print("\nSuite " + suite + " has no bin directory", file=sys.stderr)
     sys.exit(0)
 
 for file in os.listdir(bin):
@@ -165,10 +166,10 @@ for file in os.listdir(bin):
     new_file = True
     try:
         h = open(os.path.join(bin, file), 'rb')
-    except IOError, x:
+    except IOError as x:
         # e.g. there's a sub-directory under bin; ignore it.
-        print >> sys.stderr, 'Unable to open file ' + os.path.join(bin, file)
-        print >> sys.stderr, x
+        print('Unable to open file ' + os.path.join(bin, file), file=sys.stderr)
+        print(x, file=sys.stderr)
         continue
     contents = h.readlines()
     h.close()
@@ -179,6 +180,6 @@ for file in os.listdir(bin):
         count += 1
         if re.search(pattern, line):
             if new_file:
-                print '\nFILE:', os.path.join(bin, file)
+                print('\nFILE:', os.path.join(bin, file))
                 new_file = False
-            print '   (' + str(count) + '): ' + line
+            print('   (' + str(count) + '): ' + line)

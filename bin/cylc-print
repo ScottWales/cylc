@@ -26,6 +26,7 @@ the general wildcard is '.*' (match zero or more of anything), NOT '*'.
   (b) For printing purposes there is an implicit wildcard at the end of
 each pattern ('foo' is the same as 'foo.*'); use the string end marker
 to prevent this ('foo$' matches only literal 'foo')."""
+from __future__ import print_function
 
 import sys
 from cylc.remote import remrun
@@ -122,7 +123,7 @@ def main():
                 line = suite + ' | ' + dir
             else:
                 line = suite
-            print line
+            print(line)
     else:
         tree = {}
         if options.align:

@@ -24,6 +24,7 @@ interface to Python's random.randrange() function.
 Arguments:
    A     start of the range interval (inclusive)
    B     end of the random range (exclusive, so must be > A)"""
+from __future__ import print_function
 
 import os
 import sys
@@ -42,7 +43,7 @@ def main():
 
     start = int(args[0])
     end = int(args[1])
-    print random.randrange(start, end)
+    print(random.randrange(start, end))
 
 
 if __name__ == "__main__":

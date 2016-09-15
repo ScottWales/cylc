@@ -21,6 +21,7 @@
 Print the suite state in the old state dump file format to stdout.
 This command is retained for backward compatibility.
 Please consider using the "cylc ls-checkpoints" command instead."""
+from __future__ import print_function
 
 import sys
 from cylc.remote import remrun
@@ -69,7 +70,7 @@ def main():
         dump_to_stdout(get_stop_state_summary(lines)[1])
     else:
         for line in lines:
-            print line
+            print(line)
 
 
 def _get_state_lines(suite):

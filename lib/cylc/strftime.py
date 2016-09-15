@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import print_function
 import datetime
 
 
@@ -45,8 +46,8 @@ if __name__ == '__main__':
     dt1 = datetime.datetime(1900, 1, 1)
     dt2 = datetime.datetime(1600, 1, 1)
 
-    print strftime(dt1, "%Y-%m-%d %H:%M:%S")
-    print dt1.strftime("%Y-%m-%d %H:%M:%S")
+    print(strftime(dt1, "%Y-%m-%d %H:%M:%S"))
+    print(dt1.strftime("%Y-%m-%d %H:%M:%S"))
 
-    print strftime(dt2, "%Y-%m-%d %H:%M:%S")
-    print dt2.strftime("%Y-%m-%d %H:%M:%S")  # FAILS
+    print(strftime(dt2, "%Y-%m-%d %H:%M:%S"))
+    print(dt2.strftime("%Y-%m-%d %H:%M:%S"))  # FAILS

@@ -795,7 +795,7 @@ class TaskProxy(object):
             del self.summary['submit_method_id']
         except KeyError:
             pass
-        if self.sub_try_state.next() is None:
+        if next(self.sub_try_state) is None:
             # No submission retry lined up: definitive failure.
             self.summary['finished_time'] = float(
                 get_unix_time_from_time_string(event_time))
@@ -882,7 +882,7 @@ class TaskProxy(object):
             "time_run_exit": self.summary['finished_time_string'],
         })
         self.state.execution_timer_timeout = None
-        if self.run_try_state.next() is None:
+        if next(self.run_try_state) is None:
             # No retry lined up: definitive failure.
             # Note the TASK_STATUS_FAILED output is only added if needed.
             flags.pflag = True
@@ -946,7 +946,7 @@ class TaskProxy(object):
                             "run time range should be ISO 8601-compatible")
         try:
             self.sim_mode_run_length = randrange(rrange[0], rrange[1])
-        except Exception, exc:
+        except Exception as exc:
             traceback.print_exc(exc)
             raise Exception(
                 "ERROR: simulation mode task run time range must be [MIN,MAX)")
@@ -1013,7 +1013,7 @@ class TaskProxy(object):
             local_job_file_path = self.get_job_log_path(
                 self.HEAD_MODE_LOCAL, tail=self.JOB_FILE_BASE)
             JobFile.get_inst().write(local_job_file_path, job_conf)
-        except Exception, exc:
+        except Exception as exc:
             # Could be a bad command template.
             if flags.debug:
                 traceback.print_exc()
@@ -1233,11 +1233,11 @@ class TaskProxy(object):
         if self.summary['execution_time_limit']:
             try_state = self.execution_time_limit_poll_try_state
             if not try_state.is_timeout_set():
-                try_state.next()
+                next(try_state)
             if not try_state.is_delay_done():
                 # Don't poll
                 return False
-            if self.execution_time_limit_poll_try_state.next() is not None:
+            if next(self.execution_time_limit_poll_try_state) is not None:
                 # Poll now, and more retries lined up
                 return True
             # No more retry lined up, issue execution timeout event

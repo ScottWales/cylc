@@ -30,6 +30,7 @@ For remote host or owner, the suite will be printed to stdout unless
 the '-g,--gui' flag is used to spawn a remote GUI edit session.
 
 See also 'cylc [prep] edit'."""
+from __future__ import print_function
 
 import sys
 from cylc.remote import remrun
@@ -130,7 +131,7 @@ def main():
 
     if options.stdout:
         for line in lines:
-            print line
+            print(line)
         sys.exit(0)
 
     # write to a temporary file
@@ -141,7 +142,7 @@ def main():
     viewfile.seek(0, 0)
 
     # set the file to be read only
-    os.chmod(viewfile.name, 0400)
+    os.chmod(viewfile.name, 0o400)
 
     # capture the temp file's mod time in case the user edits it
     # and overrides the readonly mode.
@@ -155,7 +156,7 @@ def main():
     retcode = subprocess.call(command_list)
     if retcode != 0:
         # the command returned non-zero exist status
-        print >> sys.stderr, command, 'failed:', retcode
+        print(command, 'failed:', retcode, file=sys.stderr)
         sys.exit(1)
 
     # !!!VIEWING FINISHED!!!
@@ -164,13 +165,13 @@ def main():
     modtime2 = os.stat(viewfile.name).st_mtime
 
     if modtime2 > modtime1:
-        print
-        print >> sys.stderr, (
-            'WARNING: YOU HAVE EDITED A TEMPORARY READ-ONLY SUITE COPY:')
-        print >> sys.stderr, viewfile.name
-        print >> sys.stderr, (
-            'In future use \'cylc [prep] edit\' to edit a suite.')
-        print
+        print()
+        print((
+            'WARNING: YOU HAVE EDITED A TEMPORARY READ-ONLY SUITE COPY:'), file=sys.stderr)
+        print(viewfile.name, file=sys.stderr)
+        print((
+            'In future use \'cylc [prep] edit\' to edit a suite.'), file=sys.stderr)
+        print()
     # DONE
     viewfile.close()
 

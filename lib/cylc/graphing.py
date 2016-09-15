@@ -18,12 +18,13 @@
 
 """Cylc suite graphing module. Modules relying on this should test for
 ImportError due to pygraphviz/graphviz not being installed."""
+from __future__ import absolute_import
 
 import re
 import pygraphviz
 from cylc.task_id import TaskID
-from cycling.loader import get_point, get_point_relative, get_interval
-from graphnode import graphnode
+from .cycling.loader import get_point, get_point_relative, get_interval
+from .graphnode import graphnode
 
 # TODO: Do we still need autoURL below?
 

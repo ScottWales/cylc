@@ -33,6 +33,7 @@ if $CYLC_VERSION is defined.
 User -v/--verbose to see the command invoked to determine the remote version
 (all remote cylc command invocations will be of the same form, which may be
 site dependent -- see cylc global config documentation."""
+from __future__ import print_function
 
 import sys
 import subprocess
@@ -97,32 +98,32 @@ def main():
             argv += ["--host=%s" % host]
             user_at_host = host
         if verbose:
-            print "%s: %s" % (user_at_host, ' '.join(argv))
+            print("%s: %s" % (user_at_host, ' '.join(argv)))
         p = subprocess.Popen(
             argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = p.communicate()
         res = p.wait()
         if res == 0:
             if verbose:
-                print "   %s" % out
+                print("   %s" % out)
             contacted += 1
             out = out.strip()
             if out != CYLC_VERSION:
                 warn[user_at_host] = out
         else:
-            print >> sys.stderr, 'ERROR ' + user_at_host + ':'
-            print >> sys.stderr, err
+            print('ERROR ' + user_at_host + ':', file=sys.stderr)
+            print(err, file=sys.stderr)
 
     # report results
     if not warn:
         if contacted:
-            print "All", contacted, "accounts have cylc-" + CYLC_VERSION
+            print("All", contacted, "accounts have cylc-" + CYLC_VERSION)
     else:
-        print "WARNING: failed to invoke cylc-%s on %d accounts:" % (
-            CYLC_VERSION, len(warn.keys()))
+        print("WARNING: failed to invoke cylc-%s on %d accounts:" % (
+            CYLC_VERSION, len(warn.keys())))
         m = max([len(ac) for ac in warn.keys()])
         for ac, warning in warn.items():
-            print ' ', ac.ljust(m), warning
+            print(' ', ac.ljust(m), warning)
         if options.error:
             sys.exit(1)
 

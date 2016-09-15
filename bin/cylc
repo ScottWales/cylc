@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import print_function
 import os
 import re
 import sys
@@ -161,18 +162,18 @@ def pretty_print(incom, choose_dict, indent=True, numbered=False, sort=False):
         if item not in incom:
             raise SystemExit("ERROR: summary for '" + item + "' not found")
 
-        print spacer,
+        print(spacer, end=' ')
         if numbered:
             count += 1
             if pad and count < 10:
                 digit = ' ' + str(count)
             else:
                 digit = str(count)
-            print digit + '/',
-        print "%s %s %s" % (
+            print(digit + '/', end=' ')
+        print("%s %s %s" % (
             label[item],
             '.' * (longest - len(label[item])) + '...',
-            incom[item])
+            incom[item]))
 
 # BEGIN MAIN
 
@@ -484,15 +485,15 @@ def typo(str):
 def category_help(category):
     coms = eval(category + '_commands')
     alts = '|'.join(categories[category])
-    print 'CATEGORY: ' + alts + ' - ' + catsum[category]
+    print('CATEGORY: ' + alts + ' - ' + catsum[category])
     if category == 'database':
-        print "Suite name registrations are held under $HOME/.cylc/REGDB."
-    print
-    print 'HELP: cylc [' + alts + '] COMMAND help,--help'
-    print '  You can abbreviate ' + alts + ' and COMMAND.'
-    print '  The category ' + alts + ' may be omitted.'
-    print
-    print 'COMMANDS:'
+        print("Suite name registrations are held under $HOME/.cylc/REGDB.")
+    print()
+    print('HELP: cylc [' + alts + '] COMMAND help,--help')
+    print('  You can abbreviate ' + alts + ' and COMMAND.')
+    print('  The category ' + alts + ' may be omitted.')
+    print()
+    print('COMMANDS:')
     pretty_print(comsum, coms, sort=True)
 
 
@@ -512,7 +513,7 @@ def set_environment_vars(args):
 # no arguments: print help and exit
 if len(sys.argv) == 1:
     from cylc.version import CYLC_VERSION
-    print usage.replace("__CYLC_VERSION__", CYLC_VERSION)
+    print(usage.replace("__CYLC_VERSION__", CYLC_VERSION))
     pretty_print(catsum, categories)
     sys.exit(1)
 
@@ -527,37 +528,37 @@ if len(args) == 1:
         keys = catsum.keys()
         keys.sort()
         for key in keys:
-            print key
+            print(key)
         sys.exit(0)
     if args[0] == 'commands':
         # secret argument for document processing
         keys = comsum.keys()
         keys.sort()
         for key in keys:
-            print key
+            print(key)
         sys.exit(0)
     if args[0].startswith('category='):
         # secret argument for gcylc
         category = args[0][9:]
         commands = eval(category + '_commands')
         for command in commands:
-            print command
+            print(command)
         sys.exit(0)
     if is_help(args[0]):
         # cylc help
         from cylc.version import CYLC_VERSION
-        print usage.replace("__CYLC_VERSION__", CYLC_VERSION)
+        print(usage.replace("__CYLC_VERSION__", CYLC_VERSION))
         pretty_print(catsum, categories)
         sys.exit(0)
     if (args[0] == '-v' or args[0] == '--version'):
         from cylc.version import CYLC_VERSION
-        print CYLC_VERSION
+        print(CYLC_VERSION)
         sys.exit(0)
 
     # cylc CATEGORY with no args => category help
     try:
         category = match_dict(args[0], categories, 'CATEGORY')
-    except CommandError, x:
+    except CommandError as x:
         # No matching category
         # (no need to print this, the exception will recur below)
         # Carry on in case of a no-argument command (e.g. 'cylc scan')
@@ -580,12 +581,12 @@ if len(args) == 2 and (is_help(args[0]) or is_help(args[1])):
         item = args[1]
     try:
         category = match_dict(item, categories, 'CATEGORY')
-    except CommandError, x:
+    except CommandError as x:
         # no matching category, try command
         try:
             command = match_command(typo(item))
-        except CommandError, y:
-            print >> sys.stderr, x
+        except CommandError as y:
+            print(x, file=sys.stderr)
             raise SystemExit(y)
         else:
             # cylc COMMAND --help
@@ -606,19 +607,19 @@ elif len(args) == 3 and (is_help(args[0]) or is_help(args[2])):
         command = args[2]
     try:
         category = match_dict(category, categories, 'CATEGORY')
-    except CommandError, x:
+    except CommandError as x:
         raise SystemExit(x)
 
     coms = eval(category + '_commands')
     try:
         command = match_dict(command, coms, category + ' COMMAND')
-    except CommandNotUniqueError, y:
-        print y
+    except CommandNotUniqueError as y:
+        print(y)
         sys.exit(1)
-    except CommandNotFoundError, y:
-        print y
-        print 'COMMANDS available in CATEGORY "' + category + '":'
-        print coms.keys()
+    except CommandNotFoundError as y:
+        print(y)
+        print('COMMANDS available in CATEGORY "' + category + '":')
+        print(coms.keys())
         sys.exit(1)
 
     # cylc COMMAND --help
@@ -631,13 +632,13 @@ else:
     try:
         category = args[0]
         category = match_dict(category, categories, 'CATEGORY')
-    except CommandError, x:
+    except CommandError as x:
         # no matching category, try command
         try:
             command = args[0]
             command = match_command(typo(command))
-        except CommandError, y:
-            print >> sys.stderr, x
+        except CommandError as y:
+            print(x, file=sys.stderr)
             raise SystemExit(y)
         else:
             # cylc COMMAND [ARGS]
@@ -648,13 +649,13 @@ else:
         command = args[1]
         try:
             command = match_dict(command, coms, category + ' COMMAND')
-        except CommandNotUniqueError, y:
-            print y
+        except CommandNotUniqueError as y:
+            print(y)
             sys.exit(1)
-        except CommandNotFoundError, y:
-            print y
-            print 'COMMANDS available in CATEGORY "' + category + '":'
-            print coms.keys()
+        except CommandNotFoundError as y:
+            print(y)
+            print('COMMANDS available in CATEGORY "' + category + '":')
+            print(coms.keys())
             sys.exit(1)
 
         else:
@@ -681,7 +682,7 @@ cmd = sys.argv[0] + '-' + command
 # Replace the current process with that of the sub-command.
 try:
     os.execvp(cmd, [cmd] + args)
-except OSError, exc:
+except OSError as exc:
     if exc.filename is None:
         exc.filename = cmd
     raise SystemExit(exc)

@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """Task to cylc progress messaging."""
+from __future__ import print_function
 
 import os
 import sys
@@ -159,10 +160,10 @@ class TaskMessage(object):
         prefix = 'cylc (%s - %s): ' % (self.mode, self.true_event_time)
         for message in messages:
             if self.priority == self.NORMAL:
-                print prefix + message
+                print(prefix + message)
             else:
-                print >>sys.stderr, "%s%s %s" % (
-                    prefix, self.priority, message)
+                print("%s%s %s" % (
+                    prefix, self.priority, message), file=sys.stderr)
 
     def _send_by_pyro(self, messages):
         """Send message by Pyro."""
@@ -178,39 +179,39 @@ class TaskMessage(object):
                 client = self._get_client()
                 for message in messages:
                     client.put(self.priority, message)
-            except NamingError, exc:
-                print >> sys.stderr, exc
-                print "Send message: try %s of %s failed: %s" % (
+            except NamingError as exc:
+                print(exc, file=sys.stderr)
+                print("Send message: try %s of %s failed: %s" % (
                     i_try,
                     self.max_tries,
                     exc
-                )
-                print "Task proxy removed from suite daemon? Aborting."
+                ))
+                print("Task proxy removed from suite daemon? Aborting.")
                 break
-            except Exception, exc:
-                print >> sys.stderr, exc
-                print "Send message: try %s of %s failed: %s" % (
+            except Exception as exc:
+                print(exc, file=sys.stderr)
+                print("Send message: try %s of %s failed: %s" % (
                     i_try,
                     self.max_tries,
                     exc
-                )
+                ))
                 if i_try >= self.max_tries:
                     break
-                print "   retry in %s seconds, timeout is %s" % (
+                print("   retry in %s seconds, timeout is %s" % (
                     self.retry_seconds,
                     self.try_timeout
-                )
+                ))
                 sleep(self.retry_seconds)
             else:
                 if i_try > 1:
-                    print "Send message: try %s of %s succeeded" % (
+                    print("Send message: try %s of %s succeeded" % (
                         i_try,
                         self.max_tries
-                    )
+                    ))
                 sent = True
         if not sent:
             # issue a warning and let the task carry on
-            print >> sys.stderr, 'WARNING: MESSAGE SEND FAILED'
+            print('WARNING: MESSAGE SEND FAILED', file=sys.stderr)
 
     def _send_by_ssh(self):
         """Send message via SSH."""
@@ -272,7 +273,7 @@ class TaskMessage(object):
                 job_status_file = open(job_log_name + ".status", "ab")
             except IOError as exc:
                 if cylc.flags.debug:
-                    print >>sys.stderr, exc
+                    print(exc, file=sys.stderr)
         for i, message in enumerate(messages):
             if job_status_file:
                 if message == TASK_OUTPUT_STARTED:
@@ -318,4 +319,4 @@ class TaskMessage(object):
                 job_status_file.close()
             except IOError as exc:
                 if cylc.flags.debug:
-                    print >>sys.stderr, exc
+                    print(exc, file=sys.stderr)

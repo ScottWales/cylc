@@ -28,6 +28,7 @@ The main reason to use this command is to update the "estimated time till
 completion" intervals shown in the tree-view suite control GUI, during
 periods when nothing else is happening.
 """
+from __future__ import print_function
 
 import sys
 if '--use-ssh' in sys.argv[1:]:
@@ -54,7 +55,7 @@ def main():
 
     success, msg = pclient.put_command('nudge')
     if success:
-        print msg
+        print(msg)
     else:
         sys.exit(msg)
 

@@ -22,6 +22,7 @@ For one-off conversion of a suite run directory to cylc-6 format.
 
 Arguments:
      SUITE    suite name or run directory path"""
+from __future__ import print_function
 
 import re
 import os
@@ -64,13 +65,13 @@ def upgrade_logdir(jobdir):
     if not os.path.isdir(jobdir):
         return
     os.chdir(jobdir)
-    print "Upgrading %s" % jobdir
+    print("Upgrading %s" % jobdir)
     max_subnums = defaultdict(lambda: defaultdict(int))
     for old_jobfile in os.listdir("."):
         m = re.match(OLD_LOGFILE_RE, old_jobfile)
         if not m:
-            print >> sys.stderr, (
-                "WARNING: skipping non-standard log file: %s" % old_jobfile)
+            print((
+                "WARNING: skipping non-standard log file: %s" % old_jobfile), file=sys.stderr)
             continue
         sys.stdout.write(".")
         task_name, cycle_point, subnum, dot, extn = m.groups()
@@ -113,12 +114,12 @@ def upgrade_workdir(workdir):
     if not os.path.isdir(workdir):
         return
     os.chdir(workdir)
-    print "Upgrading %s" % workdir
+    print("Upgrading %s" % workdir)
     for old_workdir in os.listdir("."):
         m = re.match(OLD_WORKDIR_RE, old_workdir)
         if not m:
-            print >> sys.stderr, (
-                "WARNING: skipping non-standard workdir %s" % old_workdir)
+            print((
+                "WARNING: skipping non-standard workdir %s" % old_workdir), file=sys.stderr)
             continue
         sys.stdout.write(".")
         task_name, cycle_point = m.groups()
@@ -148,7 +149,7 @@ def main():
     workdir = os.path.join(rundir, "work")
     upgrade_workdir(workdir)
 
-    print "Done"
+    print("Done")
 
 
 if __name__ == "__main__":

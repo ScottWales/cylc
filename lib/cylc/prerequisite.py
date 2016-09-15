@@ -154,7 +154,7 @@ class Prerequisite(object):
     def _conditional_is_satisfied(self):
         try:
             res = eval(self.conditional_expression)
-        except Exception, exc:
+        except Exception as exc:
             err_msg = str(exc)
             if str(exc).find("unexpected EOF") != -1:
                 err_msg += ("\n(?could be unmatched parentheses in the graph "

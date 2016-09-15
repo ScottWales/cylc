@@ -16,10 +16,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import absolute_import
 import re
 import unittest
 from copy import copy
-from task_id import TaskID
+from .task_id import TaskID
 from parsec.OrderedDict import OrderedDictWithDefaults
 
 """Parameter expansion for runtime namespace names and graph strings.

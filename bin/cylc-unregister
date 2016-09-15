@@ -24,6 +24,7 @@ partial matches (e.g. 'bar.baz' will not match 'foo.bar.baz').
 
 Associated suite definition directories will not be deleted unless the
 '-d,--delete' option is used."""
+from __future__ import print_function
 
 import sys
 from cylc.remote import remrun
@@ -58,7 +59,7 @@ def main():
 
     unregistered_set, skipped_set = db.unregister(args[0])
 
-    print '%d suite(s) unregistered.' % len(unregistered_set)
+    print('%d suite(s) unregistered.' % len(unregistered_set))
     if not unregistered_set or not options.obliterate:
         sys.exit(bool(skipped_set))
 
@@ -69,13 +70,13 @@ def main():
                 options.force = True
             elif response != 'y':
                 continue
-        print 'DELETE "%s"' % (path)
+        print('DELETE "%s"' % (path))
         try:
             rmtree(path)
         except OSError as exc:
-            print >> sys.stderr, (
-                "ERROR, could not remove directory: " + path)
-            print >> sys.stderr, str(exc)
+            print((
+                "ERROR, could not remove directory: " + path), file=sys.stderr)
+            print(str(exc), file=sys.stderr)
             continue
     sys.exit(bool(skipped_set))
 

@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """Cylc memory and performance profiling."""
+from __future__ import print_function
 
 import os
 import sys
@@ -51,7 +52,7 @@ class Profiler(object):
         stats = pstats.Stats(self.prof, stream=string_stream)
         stats.sort_stats('cumulative')
         stats.print_stats()
-        print string_stream.getvalue()
+        print(string_stream.getvalue())
 
     def log_memory(self, message):
         """Print a message to standard out with the current memory usage."""
@@ -59,4 +60,4 @@ class Profiler(object):
             return
         proc = Popen(["ps", "h", "-orss", str(os.getpid())], stdout=PIPE)
         memory = int(proc.communicate()[0])
-        print "PROFILE: Memory: %d KiB: %s" % (memory, message)
+        print("PROFILE: Memory: %d KiB: %s" % (memory, message))

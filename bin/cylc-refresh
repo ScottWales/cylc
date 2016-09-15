@@ -23,6 +23,7 @@ directory or suite.rc file) and refresh suite titles in case they have
 changed since the suite was registered. Explicit wildcards must be
 used in the match pattern (e.g. 'f' will not match 'foo.bar' unless
 you use 'f.*')."""
+from __future__ import print_function
 
 import sys
 from cylc.remote import remrun
@@ -69,16 +70,16 @@ def main():
     items = db.get_list(pattern)
     if len(items) == 0:
         if pattern:
-            print 'No suites found to match', pattern
+            print('No suites found to match', pattern)
         else:
-            print 'No suites found'
+            print('No suites found')
     for suite, dir, title in items:
         if suite in invalid:
             continue
         try:
             db.refresh_suite_title(suite)
-        except (RegistrationError, SuiteConfigError), x:
-            print >> sys.stderr, x
+        except (RegistrationError, SuiteConfigError) as x:
+            print(x, file=sys.stderr)
             readerror.append(suite)
     if len(invalid) > 0:
         print("ERROR, %d invalid registrations "
@@ -87,12 +88,12 @@ def main():
             if options.unregister:
                 db.unregister(i)
             else:
-                print ' -', i
+                print(' -', i)
     if len(readerror) > 0:
         print("ERROR, %d title parse failures "
               "(bad suite.rc file):" % len(readerror))
         for i in readerror:
-            print ' -', i
+            print(' -', i)
 
 
 if __name__ == "__main__":

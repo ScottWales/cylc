@@ -30,6 +30,7 @@ filenames are the suite names, and the file contains key=value pairs:
   shell$ cat $HOME/.cylc/REGDB/my.suite
   title=my suite title
   path=/path/to/my/suite/"""
+from __future__ import print_function
 
 import sys
 import os
@@ -69,8 +70,8 @@ def main():
     for suite, (dir, title) in olditems.items():
         try:
             db.register(suite, dir)
-        except RegistrationError, x:
-            print >> sys.stderr, x
+        except RegistrationError as x:
+            print(x, file=sys.stderr)
 
 
 if __name__ == "__main__":

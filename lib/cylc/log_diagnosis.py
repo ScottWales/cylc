@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
 import sys
 import re
 from difflib import unified_diff
@@ -105,7 +106,7 @@ class LogAnalyser(object):
 
         if new != ref:
             diff = unified_diff(new, ref)
-            print >> sys.stderr, '\n'.join(diff)
+            print('\n'.join(diff), file=sys.stderr)
             raise LogAnalyserError(
                 "ERROR: triggering is NOT consistent with the reference log")
         else:

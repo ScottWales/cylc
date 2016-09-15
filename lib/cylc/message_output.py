@@ -16,9 +16,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import absolute_import
 import re
-from cycling.loader import get_interval, get_interval_cls
-from task_trigger import get_message_offset
+from .cycling.loader import get_interval, get_interval_cls
+from .task_trigger import get_message_offset
 
 
 class MessageOutput(object):

@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """Cylc scheduler server."""
+from __future__ import print_function
 
 from copy import copy, deepcopy
 import logging
@@ -272,8 +273,8 @@ class Scheduler(object):
                         os.unlink(os.path.join(run_dir, "state.tar.gz"))
                     except OSError:
                         pass
-                    print >> sys.stderr, (
-                        "ERROR: cannot tar-gzip + remove old state/ directory")
+                    print((
+                        "ERROR: cannot tar-gzip + remove old state/ directory"), file=sys.stderr)
             else:
                 pri_dao = CylcSuiteDAO(pri_db_path)
 
@@ -316,7 +317,7 @@ class Scheduler(object):
             ERR.error("error caught: cleaning up before exit")
             try:
                 self.shutdown('ERROR: ' + str(exc))
-            except Exception, exc1:
+            except Exception as exc1:
                 # In case of exceptions in the shutdown method itself
                 traceback.print_exc(exc1)
             if cylc.flags.debug:
@@ -387,7 +388,7 @@ conditions; see `cylc conditions`.
         license_lines = cylc_license.splitlines()
         lmax = max(len(line) for line in license_lines)
         for i in range(len(logo_lines)):
-            print logo_lines[i], ('{0: ^%s}' % lmax).format(license_lines[i])
+            print(logo_lines[i], ('{0: ^%s}' % lmax).format(license_lines[i]))
 
     def _configure_pyro(self):
         """Create and configure Pyro daemon."""
@@ -529,20 +530,20 @@ conditions; see `cylc conditions`.
     def _load_broadcast_states(self, row_idx, row):
         """Load a setting in the previous broadcast states."""
         if row_idx == 0:
-            print "LOADING broadcast states"
+            print("LOADING broadcast states")
         point, namespace, key, value = row
         BroadcastServer.get_inst().load_state(point, namespace, key, value)
-        print BROADCAST_LOAD_FMT.strip() % {
+        print(BROADCAST_LOAD_FMT.strip() % {
             "change": BROADCAST_LOAD_PREFIX,
             "point": point,
             "namespace": namespace,
             "key": key,
-            "value": value}
+            "value": value})
 
     def _load_suite_params(self, row_idx, row):
         """Load previous initial/final cycle point."""
         if row_idx == 0:
-            print "LOADING suite parameters"
+            print("LOADING suite parameters")
         key, value = row
         for key_str, self_attr, option_ignore_attr in [
                 ("initial", "start_point", "ignore_start_point"),
@@ -937,10 +938,10 @@ conditions; see `cylc conditions`.
             self._get_events_conf(self.EVENT_INACTIVITY_TIMEOUT)
         )
         if cylc.flags.verbose:
-            print "%s suite inactivity timer starts NOW: %s" % (
+            print("%s suite inactivity timer starts NOW: %s" % (
                 get_seconds_as_interval_string(
                     self._get_events_conf(self.EVENT_INACTIVITY_TIMEOUT)),
-                get_current_time_string())
+                get_current_time_string()))
 
     def load_suiterc(self, reconfigure):
         """Load and log the suite definition."""
@@ -1058,7 +1059,7 @@ conditions; see `cylc conditions`.
             # * public database is in sync with private database
             # * private database file is private
             self.pri_dao = CylcSuiteDAO(pri_db_path)
-            os.chmod(pri_db_path, 0600)
+            os.chmod(pri_db_path, 0o600)
             self.pub_dao = CylcSuiteDAO(pub_db_path, is_public=True)
             self._copy_pri_db_to_pub_db()
             pub_db_path_symlink = os.path.join(
@@ -1574,10 +1575,10 @@ conditions; see `cylc conditions`.
             if self.suite_timer_active:
                 self.suite_timer_active = False
                 if cylc.flags.verbose:
-                    print "%s suite timer stopped NOW: %s" % (
+                    print("%s suite timer stopped NOW: %s" % (
                         get_seconds_as_interval_string(
                             self._get_events_conf(self.EVENT_TIMEOUT)),
-                        get_current_time_string())
+                        get_current_time_string()))
 
     def process_tasks(self):
         """Return True if waiting tasks are ready."""

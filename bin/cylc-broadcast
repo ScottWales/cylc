@@ -56,6 +56,7 @@ options can be used on the same command line. Broadcast cannot change
 [runtime] inheritance.
 
 See also 'cylc reload' - reload a modified suite definition at run time."""
+from __future__ import print_function
 
 import sys
 if '--use-ssh' in sys.argv[1:]:
@@ -205,7 +206,7 @@ def main():
         settings = pclient.broadcast('get', options.showtask)
         padding = get_padding(settings) * ' '
         if options.raw:
-            print str(settings)
+            print(str(settings))
         else:
             print_tree(settings, padding, options.unicode)
         sys.exit(0)
@@ -214,16 +215,16 @@ def main():
         modified_settings, bad_options = pclient.broadcast(
             'clear', options.point_strings, options.namespaces)
         if modified_settings:
-            print get_broadcast_change_report(
-                modified_settings, is_cancel=True)
+            print(get_broadcast_change_report(
+                modified_settings, is_cancel=True))
         sys.exit(get_broadcast_bad_options_report(bad_options))
 
     if options.expire:
         modified_settings, bad_options = pclient.broadcast(
             'expire', options.expire)
         if modified_settings:
-            print get_broadcast_change_report(
-                modified_settings, is_cancel=True)
+            print(get_broadcast_change_report(
+                modified_settings, is_cancel=True))
         sys.exit(get_broadcast_bad_options_report(bad_options))
 
     # implement namespace and cycle point defaults here
@@ -251,8 +252,8 @@ def main():
         modified_settings, bad_options = pclient.broadcast(
             'clear', point_strings, namespaces, settings)
         if modified_settings:
-            print get_broadcast_change_report(
-                modified_settings, is_cancel=True)
+            print(get_broadcast_change_report(
+                modified_settings, is_cancel=True))
         sys.exit(get_broadcast_bad_options_report(bad_options))
 
     if options.set:
@@ -271,7 +272,7 @@ def main():
             settings.append(setting)
         modified_settings, bad_options = pclient.broadcast(
             'put', point_strings, namespaces, settings)
-        print get_broadcast_change_report(modified_settings)
+        print(get_broadcast_change_report(modified_settings))
         sys.exit(get_broadcast_bad_options_report(bad_options, is_set=True))
 
 

@@ -48,7 +48,7 @@ class CylcDotViewerCommon(xdot.DotWindow):
                 is_reload=is_reload, collapsed=collapsed,
                 vis_start_string=self.start_point_string,
                 vis_stop_string=self.stop_point_string)
-        except Exception, x:
+        except Exception as x:
             ERR.error("Failed - parsing error?\n" + str(x))
             return False
         self.inherit = self.suiterc.get_parent_lists()
@@ -214,7 +214,7 @@ class MyDotWindow2(CylcDotViewerCommon):
             if self.outfile:
                 try:
                     self.graph.draw(self.outfile, prog='dot')
-                except IOError, x:
+                except IOError as x:
                     msg = gtk.MessageDialog(type=gtk.MESSAGE_ERROR,
                                             buttons=gtk.BUTTONS_OK,
                                             message_format=str(x))
@@ -440,7 +440,7 @@ class MyDotWindow(CylcDotViewerCommon):
             if self.outfile:
                 try:
                     self.graph.draw(self.outfile, prog='dot')
-                except IOError, x:
+                except IOError as x:
                     msg = gtk.MessageDialog(type=gtk.MESSAGE_ERROR,
                                             buttons=gtk.BUTTONS_OK,
                                             message_format=str(x))

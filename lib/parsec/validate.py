@@ -22,6 +22,7 @@ Check all values are legal (type; min, max, allowed options).
 Coerce value type from string (to int, float, list, etc.).
 Also provides default values from the spec as a nested dict.
 """
+from __future__ import print_function
 
 import re
 import sys
@@ -120,8 +121,8 @@ def check_compulsory(cfig, spec, keys=[]):
                         cfg = cfg[k]
                 except KeyError:
                     # TODO - raise an exception
-                    print >> sys.stderr, (
-                        "COMPULSORY ITEM MISSING", keys + [key])
+                    print((
+                        "COMPULSORY ITEM MISSING", keys + [key]), file=sys.stderr)
 
 
 def _populate_spec_defaults(defs, spec):

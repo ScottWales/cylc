@@ -91,7 +91,7 @@ class xnscFrame(object):
 					self.output(' '+self.NS.fullName(n)+' --> ')
 					try:
 						self.printList(self.NS.list(n))
-					except NamingError,x:
+					except NamingError as x:
 						self.printError("can't list",x)
 			else:
 				self.outputln('*** List default group:')
@@ -127,7 +127,7 @@ class xnscFrame(object):
 				self.NS.register(name,uri)
 				uri=Pyro.core.PyroURI(uri)
 				self.outputln('  '+name+'  -->  '+str(uri))
-			except NamingError,x:
+			except NamingError as x:
 				self.printError("Error from NS", x)
 			except: 
 				self.handle_comm_error('register')
@@ -143,7 +143,7 @@ class xnscFrame(object):
 			try:
 				uri=self.NS.resolve(name)
 				self.outputln('  '+name+'  -->  '+str(uri))
-			except NamingError,x:
+			except NamingError as x:
 				self.printError("can't resolve '"+name+"'", x)
 			except: 
 				self.handle_comm_error('resolve')
@@ -157,7 +157,7 @@ class xnscFrame(object):
 			try:
 				self.NS.unregister(name)
 				self.outputln('*** removed: '+name)
-			except NamingError,x:
+			except NamingError as x:
 				self.printError("Can't remove '"+name+"'", x)
 			except: 
 				self.handle_comm_error('remove')
@@ -177,7 +177,7 @@ class xnscFrame(object):
 			try:
 				self.NS.createGroup(name)
 				self.outputln('*** group created: '+name)
-			except Exception,x:
+			except Exception as x:
 				self.printError("Can't create group",x)
 	
 	def b_deletegroup(self,event=None):
@@ -188,7 +188,7 @@ class xnscFrame(object):
 			try:
 				self.NS.deleteGroup(name)
 				self.outputln('*** group deleted: '+name)
-			except Exception,x:
+			except Exception as x:
 				self.printError("Can't delete group",x)
 
 	def b_showmeta(self,event=None):
@@ -197,7 +197,7 @@ class xnscFrame(object):
 		try:
 			self.outputln("system meta info : "+str(self.NS._getSystemMeta(name)))
 			self.outputln("  user meta info : "+str(self.NS.getMeta(name)))
-		except NamingError,x:
+		except NamingError as x:
 			self.printError("Can't get Meta info",x)
 		except: 
 			self.handle_comm_error('showmeta')
@@ -209,7 +209,7 @@ class xnscFrame(object):
 			try:
 				self.NS.setMeta(name,meta)
 				self.outputln('  '+name+'  META='+meta)
-			except NamingError,x:
+			except NamingError as x:
 				self.printError("Error from NS", x)
 			except: 
 				self.handle_comm_error('setmeta')
@@ -220,7 +220,7 @@ class xnscFrame(object):
 		self.outputln("*** resync NS with twin")
 		try:
 			self.NS.resync()
-		except NamingError,x:
+		except NamingError as x:
 			self.printError("Can't resync",x)
 		except: 
 			self.handle_comm_error('resync')

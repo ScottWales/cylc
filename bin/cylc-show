@@ -21,6 +21,7 @@
 Interrogate a suite daemon for the suite title and description; or for the
 title and description of one of its tasks; or for the current state of the
 prerequisites, outputs, and clock-triggering of a specific task instance."""
+from __future__ import print_function
 
 import sys
 if '--use-ssh' in sys.argv[1:]:
@@ -53,7 +54,7 @@ def main():
         # Print suite info.
         suite_info = pclient.get_info('get_suite_info')
         for key, value in sorted(suite_info.items(), reverse=True):
-            print '%s: %s' % (key, value or "(not given)")
+            print('%s: %s' % (key, value or "(not given)"))
         sys.exit(0)
 
     point_string = None
@@ -71,7 +72,7 @@ def main():
     if not info:
         sys.exit("ERROR: task not found: %s" % name)
     for key, value in sorted(info.items(), reverse=True):
-        print "%s: %s" % (key, value or "(not given)")
+        print("%s: %s" % (key, value or "(not given)"))
 
     if point_string is not None:
         result = pclient.get_info('get_task_requisites', name, point_string)
@@ -81,32 +82,32 @@ def main():
         for task_id in result.keys():
             [pre, out, extra_info] = result[task_id]
 
-            print '\nprerequisites (- => not satisfied):'
+            print('\nprerequisites (- => not satisfied):')
             if len(pre) == 0:
-                print '  (None)'
+                print('  (None)')
             for item in sorted(pre):
                 [msg, state] = item
                 if state:
                     descr = '  + '
                 else:
                     descr = '  - '
-                print descr + msg
+                print(descr + msg)
 
-            print '\noutputs (- => not completed):'
+            print('\noutputs (- => not completed):')
             if len(out) == 0:
-                print '  (None)'
+                print('  (None)')
             for item in sorted(out):
                 [msg, state] = item
                 if state:
                     descr = '  + '
                 else:
                     descr = '  - '
-                print descr + msg
+                print(descr + msg)
 
             if len(extra_info.keys()) > 0:
-                print '\nother:'
+                print('\nother:')
                 for item in extra_info:
-                    print '  o ', item, '...', extra_info[item]
+                    print('  o ', item, '...', extra_info[item])
 
 
 if __name__ == "__main__":

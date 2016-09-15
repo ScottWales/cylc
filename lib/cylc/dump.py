@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """Utility for "cylc cat-state" and "cylc dump"."""
+from __future__ import print_function
 
 import time
 from cylc.task_id import TaskID
@@ -102,4 +103,4 @@ def dump_to_stdout(states, sort_by_cycle=False):
 
     lines.sort()
     for line in lines:
-        print line
+        print(line)

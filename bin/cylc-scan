@@ -38,6 +38,7 @@ Passphrases are still required to get identity information from older suites
 
 WARNING: a suite suspended with Ctrl-Z will cause port scans to hang until the
 connection times out (see --pyro-timeout)."""
+from __future__ import print_function
 
 import sys
 if "--use-ssh" in sys.argv[1:]:
@@ -151,7 +152,7 @@ def main():
     if options.print_ports:
         base = GLOBAL_CFG.get(["pyro", "base port"])
         max_num_ports = GLOBAL_CFG.get(["pyro", "maximum number of ports"])
-        print base, "<= port <=", base + max_num_ports
+        print(base, "<= port <=", base + max_num_ports)
         sys.exit(0)
 
     indent = "   "
@@ -217,11 +218,11 @@ def main():
                     re.match(pattern_owner, owner)):
                 continue
             if options.old_format:
-                print name, owner, host, port
+                print(name, owner, host, port)
             elif options.raw_format:
-                print "%s|%s|%s|port|%s" % (name, owner, host, port)
+                print("%s|%s|%s|port|%s" % (name, owner, host, port))
             else:
-                print "%s %s@%s:%s" % (name, owner, host, port)
+                print("%s %s@%s:%s" % (name, owner, host, port))
             continue
         else:
             name = suite_identity['name']
@@ -232,18 +233,18 @@ def main():
             continue
 
         if options.old_format:
-            print name, owner, host, port
+            print(name, owner, host, port)
             continue
 
         if options.raw_format:
-            print "%s|%s|%s|port|%s" % (name, owner, host, port)
+            print("%s|%s|%s|port|%s" % (name, owner, host, port))
             for property in ["title", "description", "update-time"]:
                 value = suite_identity.get(property, None)
                 if value:
-                    print "%s|%s|%s|%s|%s" % (
+                    print("%s|%s|%s|%s|%s" % (
                         name, owner, host, property,
                         str(value).replace("\n", " ")
-                    )
+                    ))
             totals = suite_identity.get('states', None)
             if totals is None:
                 continue
@@ -253,8 +254,8 @@ def main():
                 property = "states"
                 if point:
                     property = "states:%s" % point
-                print "%s|%s|%s|%s|%s" % (
-                    name, owner, host, property, state_line)
+                print("%s|%s|%s|%s|%s" % (
+                    name, owner, host, property, state_line))
             continue
 
         line = '%s %s@%s:%s' % (name, owner, host, port)
@@ -262,27 +263,27 @@ def main():
             if skip_one:
                 skip_one = False
                 if state_legend != "":
-                    print state_legend + "\n"
+                    print(state_legend + "\n")
             else:
-                print
-            print bold(line)
+                print()
+            print(bold(line))
         else:
-            print line
+            print(line)
 
         if options.describe:
             title = suite_identity.get('title', None)
             if title is None:
-                print indent + bold("(description and state totals withheld)")
+                print(indent + bold("(description and state totals withheld)"))
                 continue
-            print indent + bold("Title:")
+            print(indent + bold("Title:"))
             if title == "":
                 line = "(no title)"
             else:
                 line = '"%s"' % title
-            print indent * 2 + line
+            print(indent * 2 + line)
 
             description = suite_identity.get('description', None)
-            print indent + bold("Description:")
+            print(indent + bold("Description:"))
             if description == "":
                 lines = "(no description)"
             else:
@@ -294,7 +295,7 @@ def main():
                     # Indent under the double quote.
                     line = " " + line
                 line1 = False
-                print indent * 2 + line
+                print(indent * 2 + line)
 
         totals = suite_identity.get('states', None)
         if totals is not None:
@@ -302,16 +303,16 @@ def main():
 
         if options.print_totals:
             if totals is None:
-                print indent + bold("(state totals withheld)")
+                print(indent + bold("(state totals withheld)"))
                 continue
-            print indent + bold("Task state totals:")
+            print(indent + bold("Task state totals:"))
             point_state_lines = get_point_state_count_lines(
                 *totals, use_color=options.color)
             for point, state_line in point_state_lines:
                 point_prefix = ""
                 if point:
                     point_prefix = "%s " % point
-                print indent * 2 + "%s%s" % (point_prefix, state_line)
+                print(indent * 2 + "%s%s" % (point_prefix, state_line))
 
 
 def get_point_state_count_lines(state_count_totals, state_count_cycles,

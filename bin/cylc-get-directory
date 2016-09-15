@@ -21,6 +21,7 @@
 Retrieve and print the directory location of suite REG.
 Here's an easy way to move to a suite directory:
   $ cd $(cylc get-dir REG)."""
+from __future__ import print_function
 
 import sys
 from cylc.option_parsers import CylcOptionParser as COP
@@ -39,7 +40,7 @@ def main():
 
     reg = args[0]
     db = RegistrationDB(options.db)
-    print db.get_suitedir(reg)
+    print(db.get_suitedir(reg))
 
 
 if __name__ == "__main__":

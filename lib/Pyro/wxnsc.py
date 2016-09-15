@@ -264,7 +264,7 @@ class wx_NSC(wx.Frame):
          self.NS._setIdentification(ident)
          self._log('Name Server found, URI = %s' % self.NS.URI)
          self._setNSData()
-      except ConnectionDeniedError, e:
+      except ConnectionDeniedError as e:
          if str(e).find( Pyro.constants.deniedReasons[Pyro.constants.DENIED_SECURITY] ) != -1:
             msg = 'Authentication required:'
             dlg = wx.TextEntryDialog(self, msg, 'Authentication',
@@ -326,7 +326,7 @@ class wx_NSC(wx.Frame):
             self.NS.createGroup(groupName)
             self._log('created group (%s)' % (groupName))
             return 1
-         except NamingError, e:
+         except NamingError as e:
             self._logError('unable to create group %s because %s' % (groupName,
                                                                      e))
       return 0
@@ -340,7 +340,7 @@ class wx_NSC(wx.Frame):
             self.NS.deleteGroup(groupName)
             self._log('group %s deleted' % groupName)
             return 1
-         except NamingError, e:
+         except NamingError as e:
             self._logError('unable to delete group %s because %s' % (groupName,
                                                                      e))
       return 0
@@ -368,7 +368,7 @@ class wx_NSC(wx.Frame):
          self.NS.unregister(name)
          self._log('%s deleted successfully' % name)
          return 1
-      except NamingError, e:
+      except NamingError as e:
          self._logError('unable to delete %s because %s' % (name, e))
       except:
          self._logError('deletion of %s failed' % name)
@@ -383,9 +383,9 @@ class wx_NSC(wx.Frame):
          uri = Pyro.core.PyroURI(uri)
          self._log('registered %s with %s' % (name, uri))
          return 1
-      except NamingError, e:
+      except NamingError as e:
          self._logError('unable to register,\nName Server error: %s' % e)
-      except Exception, e:
+      except Exception as e:
          self._logError('unable to register, error: %s' % e)
       return 0
 
@@ -397,9 +397,9 @@ class wx_NSC(wx.Frame):
          self.NS.setMeta(name, meta)
          self._log('set user meta data on '+name)
          return 1
-      except NamingError, e:
+      except NamingError as e:
          self._logError('unable to set user meta data,\nName Server error: %s' % e)
-      except Exception, e:
+      except Exception as e:
          self._logError('unable to set user meta data, error: %s' % e)
       return 0
 
@@ -410,9 +410,9 @@ class wx_NSC(wx.Frame):
                                              self.NS._getSystemMeta(fullName)))
          self._log('"%s" user meta info: %s' % (fullName,
                                                 self.NS.getMeta(name)))
-      except NamingError, e:
+      except NamingError as e:
          self._logError('unable to get meta info,\nName Server error: %s' % e)
-      except Exception, e:
+      except Exception as e:
          self._logError('unable to get meta info, error: %s' % e)
                         
    #-- gui event methods --#

@@ -31,6 +31,7 @@ Examples:
 
  Display the state of all tasks in a particular cycle point:
  % cylc [info] dump -t SUITE | grep 2010082406"""
+from __future__ import print_function
 
 import sys
 if '--use-ssh' in sys.argv[1:]:
@@ -90,7 +91,7 @@ def main():
 
     if display_global:
         for item in glbl:
-            print item, '=', glbl[item]
+            print(item, '=', glbl[item])
 
     if display_tasks:
         dump_to_stdout(states, options.sort_by_cycle)

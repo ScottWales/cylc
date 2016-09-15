@@ -17,14 +17,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+from __future__ import print_function
 def prompt(question, default):
     def explain():
-        print "Valid responses:"
-        print "  [enter] - accept the default"
-        print "  VALUE   - supply a new value"
-        print "  q       - quit the operation"
-        print "  s       - skip this item"
-        print "  ?       - print this message"
+        print("Valid responses:")
+        print("  [enter] - accept the default")
+        print("  VALUE   - supply a new value")
+        print("  q       - quit the operation")
+        print("  s       - skip this item")
+        print("  ?       - print this message")
 
     try_again = True
     while try_again:

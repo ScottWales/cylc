@@ -62,6 +62,7 @@ Other examples:
 Arguments:
    [POINT]  ISO 8601 date-time, e.g. 20140201T0000Z, default
       $CYLC_TASK_CYCLE_POINT"""
+from __future__ import print_function
 
 import os
 import sys
@@ -260,9 +261,9 @@ def main():
             parser.error('ERROR: offset not valid: %s' % exc)
     cycle_point += offset
     if template is None:
-        print cycle_point
+        print(cycle_point)
     else:
-        print iso_point_dumper.dump(cycle_point, template)
+        print(iso_point_dumper.dump(cycle_point, template))
 
 
 if __name__ == "__main__":

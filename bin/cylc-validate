@@ -24,6 +24,7 @@ files held in $CYLC_DIR/conf/suiterc/.
 If the suite definition uses include-files reported line numbers
 will correspond to the inlined version seen by the parser; use
 'cylc view -i,--inline SUITE' for comparison."""
+from __future__ import print_function
 
 import sys
 from cylc.remote import remrun
@@ -85,7 +86,7 @@ def main():
     # (Taken from config.py to avoid circular import problems.)
     # TODO - This is not exhaustive, it only uses the initial cycle point.
     if cylc.flags.verbose:
-        print "Instantiating tasks to check trigger expressions"
+        print("Instantiating tasks to check trigger expressions")
     for name in cfg.taskdefs.keys():
         try:
             itask = TaskProxy(
@@ -94,38 +95,38 @@ def main():
                 is_startup=True,
                 validate_mode=True)
         except Exception as exc:
-            print >> sys.stderr, str(exc)
+            print(str(exc), file=sys.stderr)
             raise SuiteConfigError(
                 'ERROR, failed to instantiate task %s' % name)
         if itask.point is None:
             if cylc.flags.verbose:
-                print >> sys.stderr, (
+                print((
                     " + Task out of bounds for " + str(cfg.start_point) +
-                    ": " + itask.name)
+                    ": " + itask.name), file=sys.stderr)
             continue
 
         # Warn for purely-implicit-cycling tasks (these are deprecated).
         if itask.tdef.sequences == itask.tdef.implicit_sequences:
-            print >> sys.stderr, (
+            print((
                 "WARNING, " + name + ": not explicitly defined in " +
                 "dependency graphs (deprecated)"
-            )
+            ), file=sys.stderr)
 
         # force trigger evaluation now
         try:
             itask.state.prerequisites_eval_all()
         except TriggerExpressionError as exc:
-            print >> sys.stderr, str(exc)
+            print(str(exc), file=sys.stderr)
             raise SuiteConfigError(
                 "ERROR, " + name + ": invalid trigger expression.")
         except Exception as exc:
-            print >> sys.stderr, str(exc)
+            print(str(exc), file=sys.stderr)
             raise SuiteConfigError(
                 'ERROR, ' + name + ': failed to evaluate triggers.')
         if cylc.flags.verbose:
-            print "  + " + itask.identity + " ok"
+            print("  + " + itask.identity + " ok")
 
-    print "Valid for cylc-" + CYLC_VERSION
+    print("Valid for cylc-" + CYLC_VERSION)
     profiler.stop()
 
 

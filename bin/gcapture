@@ -88,7 +88,7 @@ if options.filep:
             stdout = open(options.filep, 'rb')
         else:
             stdout = open(options.filep, 'wb')
-    except IOError, x:
+    except IOError as x:
         raise SystemExit(x)
     gcapture(command, stdout, width=int(options.width),
              height=int(options.height), standalone=True,

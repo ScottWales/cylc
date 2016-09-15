@@ -20,6 +20,7 @@
 Do some consistency checking, then construct task proxy objects and graph
 structures.
 """
+from __future__ import print_function
 
 
 from copy import deepcopy, copy
@@ -1402,7 +1403,7 @@ class SuiteConfig(object):
                 continue
             try:
                 my_taskdef_node = graphnode(node, base_interval=base_interval)
-            except GraphNodeError, x:
+            except GraphNodeError as x:
                 ERR.error(orig_expr)
                 raise SuiteConfigError(str(x))
 
@@ -1976,11 +1977,11 @@ class SuiteConfig(object):
                 self.sequences.append(r1_seq)
                 self._proc_triggers(proc_trigs, r1_orig, r1_sec, r1_seq)
                 if self.validation:
-                    print '''\
+                    print('''\
 # REPLACING START-UP/ASYNC DEPENDENCIES WITH AN R1* SECTION
 # (VARYING INITIAL CYCLE POINT MAY AFFECT VALIDITY)
     [[[%s]]]
-        graph = """%s"""''' % (r1_sec, r1_text)
+        graph = """%s"""''' % (r1_sec, r1_text))
 
     def get_taskdef(self, name):
         """Get the dense task runtime."""

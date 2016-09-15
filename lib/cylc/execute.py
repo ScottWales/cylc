@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import print_function
 import sys
 import subprocess
 
@@ -35,15 +36,15 @@ def execute(command_list, ignore_output=False, notify=False):
             retcode = subprocess.call(command_list)
         if retcode != 0:
             # the command returned non-zero exist status
-            print >> sys.stderr, ' '.join(command_list), ' failed: ', retcode
+            print(' '.join(command_list), ' failed: ', retcode, file=sys.stderr)
             sys.exit(1)
         else:
             if notify:
                 # print ' '.join(command_list), ' succeeded'
-                print 'DONE'
+                print('DONE')
             sys.exit(0)
     except OSError:
         # the command was not invoked
-        print >> sys.stderr, (
-            'ERROR: unable to execute ', ' '.join(command_list))
+        print((
+            'ERROR: unable to execute ', ' '.join(command_list)), file=sys.stderr)
         sys.exit(1)

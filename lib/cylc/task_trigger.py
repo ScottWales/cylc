@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import print_function
 import re
 import sys
 
@@ -73,7 +74,7 @@ def get_message_offset(msg, base_interval=None):
     m = BCOMPAT_MSG_RE_C5.match(msg)
     if m:
         if not warned:
-            print >> sys.stderr, DEPRECN_WARN_TMPL % msg
+            print(DEPRECN_WARN_TMPL % msg, file=sys.stderr)
             warned = True
         prefix, signed_offset, sign, offset, suffix = m.groups()
         if signed_offset is not None:
@@ -84,7 +85,7 @@ def get_message_offset(msg, base_interval=None):
         n = BCOMPAT_MSG_RE_C6.match(msg)
         if n:
             if not warned:
-                print >> sys.stderr, DEPRECN_WARN_TMPL % msg
+                print(DEPRECN_WARN_TMPL % msg, file=sys.stderr)
                 warned = True
             prefix, signed_offset, sign, offset, suffix = n.groups()
             if offset:

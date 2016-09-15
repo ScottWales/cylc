@@ -31,6 +31,7 @@ parsec config file parsing:
       and commenting options, is easier during validation when the item
       value type is known).
 """
+from __future__ import print_function
 
 import os
 import sys
@@ -145,7 +146,7 @@ def addsect(cfig, sname, parents):
     if sname in cfig:
         # this doesn't warrant a warning unless contained items are repeated
         if cylc.flags.verbose:
-            print 'Section already encountered: ' + itemstr(parents + [sname])
+            print('Section already encountered: ' + itemstr(parents + [sname]))
     else:
         cfig[sname] = OrderedDictWithDefaults()
 
@@ -158,7 +159,7 @@ def addict(cfig, key, val, parents, index):
 
     if not isinstance(cfig, dict):
         # an item of this name has already been encountered at this level
-        print >> sys.stderr, itemstr(parents, key, val)
+        print(itemstr(parents, key, val), file=sys.stderr)
         raise FileParseError(
             'ERROR line ' + str(index) + ': already encountered ' +
             itemstr(parents))
@@ -171,17 +172,17 @@ def addict(cfig, key, val, parents, index):
                 parents[-3:-1] == ['scheduling', 'dependencies'])):
             # append the new graph string to the existing one
             if cylc.flags.verbose:
-                print 'Merging graph strings under ' + itemstr(parents)
+                print('Merging graph strings under ' + itemstr(parents))
             if not isinstance(cfig[key], list):
                 cfig[key] = [cfig[key]]
             cfig[key].append(val)
         else:
             # otherwise override the existing item
             if cylc.flags.verbose:
-                print >> sys.stderr, (
-                    'WARNING: overriding ' + itemstr(parents, key))
-                print >> sys.stderr, ' old value: ' + cfig[key]
-                print >> sys.stderr, ' new value: ' + val
+                print((
+                    'WARNING: overriding ' + itemstr(parents, key)), file=sys.stderr)
+                print(' old value: ' + cfig[key], file=sys.stderr)
+                print(' new value: ' + val, file=sys.stderr)
             cfig[key] = val
     else:
         cfig[key] = val
@@ -242,7 +243,7 @@ def read_and_proc(fpath, template_vars=None, viewcfg=None, asedit=False):
         sys.path.append(suite_lib_python)
 
     if cylc.flags.verbose:
-        print "Reading file", fpath
+        print("Reading file", fpath)
 
     # read the file into a list, stripping newlines
     with open(fpath) as f:
@@ -264,7 +265,7 @@ def read_and_proc(fpath, template_vars=None, viewcfg=None, asedit=False):
         try:
             flines = inline(
                 flines, fdir, fpath, False, viewcfg=viewcfg, for_edit=asedit)
-        except IncludeFileNotFoundError, x:
+        except IncludeFileNotFoundError as x:
             raise FileParseError(str(x))
 
     # process with Jinja2
@@ -273,7 +274,7 @@ def read_and_proc(fpath, template_vars=None, viewcfg=None, asedit=False):
             if jinja2_disabled:
                 raise FileParseError('Jinja2 is not installed')
             if cylc.flags.verbose:
-                print "Processing with Jinja2"
+                print("Processing with Jinja2")
             try:
                 flines = jinja2process(flines, fdir, template_vars)
             except (TemplateError, TypeError, UndefinedError) as exc:
@@ -326,7 +327,7 @@ def parse(fpath, write_proc=False, template_vars=None):
             os.access(os.path.dirname(fpath), os.W_OK):
         fpath_processed = fpath + '.processed'
         if cylc.flags.verbose:
-            print "Writing file " + fpath_processed
+            print("Writing file " + fpath_processed)
         f = open(fpath_processed, 'w')
         f.write('\n'.join(flines) + '\n')
         f.close()

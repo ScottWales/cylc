@@ -1064,7 +1064,7 @@ class TaskPool(object):
                     continue
                 # Set timer if timeout is None.
                 if not try_state.is_timeout_set():
-                    if try_state.next() is None:
+                    if next(try_state) is None:
                         itask.log(WARNING, "%s failed" % str(key))
                         del itask.event_handler_try_states[key]
                         continue

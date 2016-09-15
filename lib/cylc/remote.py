@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """Run command on a remote host."""
+from __future__ import print_function
 
 import os
 from posix import WIFSIGNALED
@@ -141,8 +142,8 @@ class remrun(object):
             # Wordwrap the command, quoting arguments so they can be run
             # properly from the command line
             command_str = ' '.join([quote(arg) for arg in command])
-            print '\n'.join(
-                TextWrapper(subsequent_indent='\t').wrap(command_str))
+            print('\n'.join(
+                TextWrapper(subsequent_indent='\t').wrap(command_str)))
 
         if dry_run:
             return command
