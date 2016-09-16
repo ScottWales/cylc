@@ -70,8 +70,8 @@ def upgrade_logdir(jobdir):
     for old_jobfile in os.listdir("."):
         m = re.match(OLD_LOGFILE_RE, old_jobfile)
         if not m:
-            print((
-                "WARNING: skipping non-standard log file: %s" % old_jobfile), file=sys.stderr)
+            print("WARNING: skipping non-standard log file: %s" % old_jobfile,
+                  file=sys.stderr)
             continue
         sys.stdout.write(".")
         task_name, cycle_point, subnum, dot, extn = m.groups()
@@ -118,8 +118,8 @@ def upgrade_workdir(workdir):
     for old_workdir in os.listdir("."):
         m = re.match(OLD_WORKDIR_RE, old_workdir)
         if not m:
-            print((
-                "WARNING: skipping non-standard workdir %s" % old_workdir), file=sys.stderr)
+            print("WARNING: skipping non-standard workdir %s" % old_workdir,
+                  file=sys.stderr)
             continue
         sys.stdout.write(".")
         task_name, cycle_point = m.groups()

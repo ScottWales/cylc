@@ -179,8 +179,8 @@ def addict(cfig, key, val, parents, index):
         else:
             # otherwise override the existing item
             if cylc.flags.verbose:
-                print((
-                    'WARNING: overriding ' + itemstr(parents, key)), file=sys.stderr)
+                print('WARNING: overriding ' + itemstr(parents, key),
+                      file=sys.stderr)
                 print(' old value: ' + cfig[key], file=sys.stderr)
                 print(' new value: ' + val, file=sys.stderr)
             cfig[key] = val

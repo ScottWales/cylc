@@ -452,8 +452,8 @@ class RegistrationDB(object):
                 continue
             if os.path.exists(os.path.join(ports_d, name)):
                 skipped_set.add((name, data['path']))
-                print((
-                    'SKIP UNREGISTER %s: port file exists' % (name)), file=sys.stderr)
+                print('SKIP UNREGISTER %s: port file exists' % (name),
+                      file=sys.stderr)
                 continue
             for base_name in ['passphrase', 'suite.rc.processed']:
                 try:

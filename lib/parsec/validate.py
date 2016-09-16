@@ -121,8 +121,8 @@ def check_compulsory(cfig, spec, keys=[]):
                         cfg = cfg[k]
                 except KeyError:
                     # TODO - raise an exception
-                    print((
-                        "COMPULSORY ITEM MISSING", keys + [key]), file=sys.stderr)
+                    print("COMPULSORY ITEM MISSING", keys + [key],
+                          file=sys.stderr)
 
 
 def _populate_spec_defaults(defs, spec):

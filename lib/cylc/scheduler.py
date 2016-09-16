@@ -273,8 +273,9 @@ class Scheduler(object):
                         os.unlink(os.path.join(run_dir, "state.tar.gz"))
                     except OSError:
                         pass
-                    print((
-                        "ERROR: cannot tar-gzip + remove old state/ directory"), file=sys.stderr)
+                    print("ERROR: cannot tar-gzip + remove old " +
+                          "state/ directory",
+                          file=sys.stderr)
             else:
                 pri_dao = CylcSuiteDAO(pri_db_path)
 

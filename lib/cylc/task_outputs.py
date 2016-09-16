@@ -101,8 +101,8 @@ class TaskOutputs(object):
         message = self._qualify(msg)
         if message in self.completed or message in self.not_completed:
             # duplicate output messages are an error.
-            print((
-                'WARNING: output already registered: ' + message), file=sys.stderr)
+            print('WARNING: output already registered: ' + message,
+                  file=sys.stderr)
         if not completed:
             self.not_completed[message] = self.owner_id
         else:

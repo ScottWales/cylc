@@ -168,7 +168,8 @@ for file in os.listdir(bin):
         h = open(os.path.join(bin, file), 'rb')
     except IOError as x:
         # e.g. there's a sub-directory under bin; ignore it.
-        print('Unable to open file ' + os.path.join(bin, file), file=sys.stderr)
+        print('Unable to open file ' + os.path.join(bin, file),
+              file=sys.stderr)
         print(x, file=sys.stderr)
         continue
     contents = h.readlines()

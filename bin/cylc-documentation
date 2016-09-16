@@ -112,15 +112,17 @@ def main():
                 target = intranet_url
             else:
                 # Open in file:// mode as a last resort.
-                print(("WARNING: cylc intranet URL not "
-                                      "defined, trying file mode."), file=sys.stderr)
+                print("WARNING: cylc intranet URL not "
+                      "defined, trying file mode.",
+                      file=sys.stderr)
                 target = html_file
 
     elif len(args) == 1:
         # Suite or task documentation.
         if options.pdf or options.www:
-            print((
-                "(Note: --pdf and --www are ignored for suite documentation)."), file=sys.stderr)
+            print("(Note: --pdf and --www are ignored for suite "
+                  "documentation).",
+                  file=sys.stderr)
         suite = args[0]
         if options.task_name:
             # Task documentation.

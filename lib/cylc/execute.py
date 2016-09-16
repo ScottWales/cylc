@@ -36,7 +36,8 @@ def execute(command_list, ignore_output=False, notify=False):
             retcode = subprocess.call(command_list)
         if retcode != 0:
             # the command returned non-zero exist status
-            print(' '.join(command_list), ' failed: ', retcode, file=sys.stderr)
+            print(' '.join(command_list), ' failed: ', retcode,
+                  file=sys.stderr)
             sys.exit(1)
         else:
             if notify:
@@ -45,6 +46,6 @@ def execute(command_list, ignore_output=False, notify=False):
             sys.exit(0)
     except OSError:
         # the command was not invoked
-        print((
-            'ERROR: unable to execute ', ' '.join(command_list)), file=sys.stderr)
+        print('ERROR: unable to execute ', ' '.join(command_list),
+              file=sys.stderr)
         sys.exit(1)

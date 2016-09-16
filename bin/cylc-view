@@ -166,11 +166,11 @@ def main():
 
     if modtime2 > modtime1:
         print()
-        print((
-            'WARNING: YOU HAVE EDITED A TEMPORARY READ-ONLY SUITE COPY:'), file=sys.stderr)
+        print('WARNING: YOU HAVE EDITED A TEMPORARY READ-ONLY SUITE COPY:',
+              file=sys.stderr)
         print(viewfile.name, file=sys.stderr)
-        print((
-            'In future use \'cylc [prep] edit\' to edit a suite.'), file=sys.stderr)
+        print('In future use \'cylc [prep] edit\' to edit a suite.',
+              file=sys.stderr)
         print()
     # DONE
     viewfile.close()

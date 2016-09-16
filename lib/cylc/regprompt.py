@@ -18,6 +18,8 @@
 
 
 from __future__ import print_function
+
+
 def prompt(question, default):
     def explain():
         print("Valid responses:")
