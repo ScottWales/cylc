@@ -142,9 +142,9 @@ def main():
 
         for ns in namespaces:
             if options.mro:
-                print(ns, padding[0:len(padding) - len(ns)], end=' ')
+                print(ns, padding[0:len(padding) - len(ns)], end='')
                 for i in config.get_mro(ns):
-                    print(i, end=' ')
+                    print(' ',i, sep='',  end='')
                 print()
             elif options.titles:
                 print(ns, padding[0:len(padding) - len(ns)], end=' ')
