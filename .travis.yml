@@ -49,6 +49,9 @@ before_install:
     # Load our new environment
     - source ~/.bashrc
 
+    # Verify version
+    - python --version
+
 # These commands are run before the test
 install: 
     # Setup local SSH for Cylc jobs
