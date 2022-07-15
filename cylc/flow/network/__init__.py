@@ -16,8 +16,10 @@
 """Package for network interfaces to Cylc scheduler objects."""
 
 import asyncio
+from contextlib import suppress
 import getpass
 import json
+import socket
 
 import zmq
 import zmq.asyncio
@@ -78,7 +80,8 @@ def get_location(workflow: str):
         raise WorkflowStopped(workflow)
 
     host = contact[ContactFileFields.HOST]
-    host = get_fqdn_by_host(host)
+    with suppress(socket.gaierror):
+        host = get_fqdn_by_host(host)
     port = int(contact[ContactFileFields.PORT])
     if ContactFileFields.PUBLISH_PORT in contact:
         pub_port = int(contact[ContactFileFields.PUBLISH_PORT])

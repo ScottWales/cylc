@@ -766,7 +766,7 @@ with Conf('global.cylc', desc='''
             # be able to override the target in workflow configurations.
             Conf(
                 'method', VDR.V_STRING, 'name',
-                options=['name', 'address', 'hardwired'],
+                options=['name', 'address', 'hardwired', 'hostname'],
                 desc=f'''
                     Determines how cylc finds the identity of the
                     workflow host.
@@ -784,6 +784,10 @@ with Conf('global.cylc', desc='''
                        Cylc attempts to use a special external "target address"
                        to determine the IP address of the workflow host as
                        seen by remote task hosts.
+                    hostname
+                       Self-identified host name, as returned by `hostname`.
+                       Unlike `name` does not attempt to resolve to an IP
+                       address. For use with communication method SSH.
                     hardwired
                        (only to be used as a last resort) Manually specified
                        host name or IP address (requires *host*) of the

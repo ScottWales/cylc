@@ -161,6 +161,8 @@ class HostUtil:
                     self._get_identification_cfg('target'))
             elif method == 'hardwired' and hardwired:
                 self._host = hardwired
+            elif method == 'hostname':
+                self._host = socket.gethostname()
             else:  # if method == 'name':
                 self._host = self._get_host_info()[0]
         return self._host
